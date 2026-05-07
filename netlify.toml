@@ -1,0 +1,27 @@
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/catalog"
+  to = "/index.html#shop"
+  status = 200
+
+[[redirects]]
+  from = "/about"
+  to = "/index.html#about"
+  status = 200
+
+[[redirects]]
+  from = "/visit"
+  to = "/index.html#visit"
+  status = 200
+
+[[redirects]]
+  from = "/services"
+  to = "/index.html#sell"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
