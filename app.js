@@ -192,8 +192,8 @@ function renderShop() {
   app.innerHTML = `
     <section class="page-hero compact">
       <span class="eyebrow">Shop online</span>
-      <h1>Searchable inventory, real cart flow.</h1>
-      <p>Prototype product data is loaded from <code>db/products.js</code>. Clover can later use the product SKUs and cart lines to create live sales.</p>
+      <h1>Shop inventory</h1>
+      <p>Search sealed products, supplies, raw singles, graded slabs, autos, and memorabilia. Product data is loaded from <code>db/products.js</code> and shaped for a future Clover checkout.</p>
     </section>
 
     <section class="storefront">
@@ -350,7 +350,7 @@ function renderOwner() {
   app.innerHTML = `
     <section class="page-hero compact">
       <span class="eyebrow">Future owner portal</span>
-      <h1>Manage products online.</h1>
+      <h1>Owner tools</h1>
       <p>This preview edits local override data. In production it would authenticate the owner, sync inventory, upload photos, and push stock changes to Clover.</p>
     </section>
     <section class="owner-panel">

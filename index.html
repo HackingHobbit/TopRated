@@ -18,7 +18,7 @@
   </head>
   <body>
     <div class="app-shell">
-      <aside class="rail" aria-label="Store navigation">
+      <header class="site-header">
         <a class="brand" href="#home" aria-label="Top Rated home">
           <span class="brand-mark">TR</span>
           <span>
@@ -36,27 +36,25 @@
           <a href="#owner" data-route-link="owner">Owner Preview</a>
         </nav>
 
-        <button class="rail-card" type="button" data-open-request>
-          <span>Looking for something?</span>
-          <strong>Send a want-list request</strong>
-        </button>
-      </aside>
+        <div class="topbar-actions">
+          <button type="button" class="text-action" data-open-request>Request</button>
+          <button type="button" class="text-action" data-open-offer>Offer</button>
+          <button type="button" class="cart-button" data-open-cart>
+            Cart
+            <span data-cart-count>0</span>
+          </button>
+        </div>
+      </header>
 
       <div class="site-frame">
-        <header class="topbar">
+        <div class="topbar">
           <form class="global-search" role="search" data-global-search>
             <input type="search" name="search" placeholder="Search Pokemon, Ohtani, sealed wax, sleeves..." autocomplete="off" />
             <button type="submit">Search</button>
           </form>
 
-          <div class="topbar-actions">
-            <button type="button" class="text-action" data-open-offer>Offer an item</button>
-            <button type="button" class="cart-button" data-open-cart>
-              Cart
-              <span data-cart-count>0</span>
-            </button>
-          </div>
-        </header>
+          <p>Live-style inventory, request lists, trade offers, and Clover-ready checkout.</p>
+        </div>
 
         <main id="app" tabindex="-1"></main>
       </div>
