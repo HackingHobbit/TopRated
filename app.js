@@ -346,6 +346,27 @@ function renderOwner() {
       `,
     )
     .join("");
+  const cards = allProducts()
+    .map(
+      (item) => `
+        <article class="owner-card">
+          <div>
+            <strong>${item.name}</strong>
+            <span>${item.sku}</span>
+          </div>
+          <small>${item.category} · ${item.status}</small>
+          <label>
+            Price
+            <input data-owner-price="${item.id}" type="number" step="0.01" value="${item.price}" />
+          </label>
+          <label>
+            Stock
+            <input data-owner-stock="${item.id}" type="number" step="1" value="${item.stock}" />
+          </label>
+        </article>
+      `,
+    )
+    .join("");
 
   app.innerHTML = `
     <section class="page-hero compact">
@@ -364,6 +385,7 @@ function renderOwner() {
           <tbody>${rows}</tbody>
         </table>
       </div>
+      <div class="owner-cards">${cards}</div>
       <div class="flow-strip">
         <article><span>${store.requests.length}</span><h3>Requests</h3><p>Want-list requests submitted in this browser.</p></article>
         <article><span>${store.offers.length}</span><h3>Offers</h3><p>Sell, trade, and consignment submissions.</p></article>
@@ -443,13 +465,16 @@ document.addEventListener("click", (event) => {
     alert("Prototype Clover checkout handoff: create Clover order, reserve stock, then redirect to payment.");
   }
   if (event.target.closest("[data-save-owner]")) {
-    document.querySelectorAll("[data-owner-price]").forEach((input) => {
+    const visibleOwnerInputs = (selector) =>
+      [...document.querySelectorAll(selector)].filter((input) => input.getClientRects().length > 0);
+
+    visibleOwnerInputs("[data-owner-price]").forEach((input) => {
       store.ownerEdits[input.dataset.ownerPrice] = {
         ...(store.ownerEdits[input.dataset.ownerPrice] || {}),
         price: Number(input.value),
       };
     });
-    document.querySelectorAll("[data-owner-stock]").forEach((input) => {
+    visibleOwnerInputs("[data-owner-stock]").forEach((input) => {
       store.ownerEdits[input.dataset.ownerStock] = {
         ...(store.ownerEdits[input.dataset.ownerStock] || {}),
         stock: Number(input.value),

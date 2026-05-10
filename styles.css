@@ -76,10 +76,8 @@ a {
   display: grid;
   gap: 20px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  left: 0;
   min-height: 76px;
-  position: fixed;
-  right: 0;
+  position: sticky;
   top: 0;
   z-index: 50;
 }
@@ -163,7 +161,6 @@ a {
   grid-template-columns: minmax(280px, 760px) auto;
   padding-bottom: 16px;
   padding-top: 16px;
-  margin-top: 76px;
 }
 
 .topbar p {
@@ -202,6 +199,7 @@ a {
 
 .global-search input {
   border: 0;
+  min-width: 0;
 }
 
 .global-search button,
@@ -880,6 +878,10 @@ h3 {
   overflow-x: auto;
 }
 
+.owner-cards {
+  display: none;
+}
+
 table {
   border-collapse: collapse;
   min-width: 900px;
@@ -904,6 +906,16 @@ td span {
   background: transparent;
   padding-left: 0;
   padding-right: 0;
+}
+
+.owner-panel .flow-strip article {
+  background: white;
+  border-color: #dfe4ec;
+  color: var(--navy);
+}
+
+.owner-panel .flow-strip p {
+  color: #667085;
 }
 
 .cart-drawer {
@@ -1084,10 +1096,6 @@ td span {
     padding-bottom: 12px;
   }
 
-  .topbar {
-    margin-top: 132px;
-  }
-
   .topbar,
   .commerce-hero,
   .storefront,
@@ -1121,10 +1129,6 @@ td span {
     gap: 12px;
   }
 
-  .topbar {
-    margin-top: 121px;
-  }
-
   .brand strong {
     font-size: 22px;
   }
@@ -1149,11 +1153,13 @@ td span {
 
   .rail-nav {
     gap: 4px;
+    justify-content: space-between;
+    width: 100%;
   }
 
   .rail-nav a {
-    font-size: 11px;
-    padding: 9px 10px;
+    font-size: 10px;
+    padding: 9px 6px;
   }
 
   .topbar {
@@ -1167,6 +1173,10 @@ td span {
 
   .global-search {
     grid-template-columns: 1fr;
+  }
+
+  .global-search input {
+    font-size: 16px;
   }
 
   .hero,
@@ -1233,5 +1243,52 @@ td span {
   .shop-lanes a,
   .shop-lanes button {
     min-height: 130px;
+  }
+
+  .owner-panel > .section-head {
+    gap: 16px;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+
+  .owner-cards {
+    display: grid;
+    gap: 12px;
+  }
+
+  .owner-card {
+    background: white;
+    border: 1px solid #dfe4ec;
+    border-radius: 16px;
+    box-shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+    color: var(--navy);
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .owner-card strong,
+  .owner-card span,
+  .owner-card small {
+    display: block;
+  }
+
+  .owner-card span,
+  .owner-card small {
+    color: #667085;
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 4px;
+  }
+
+  .owner-card label {
+    color: #667085;
+    display: grid;
+    font-size: 11px;
+    font-weight: 900;
+    gap: 8px;
+    text-transform: uppercase;
   }
 }
