@@ -3,10 +3,10 @@ import styles from './page.module.css';
 import ProductCard from '@/components/ProductCard';
 
 const FEATURED_PRODUCTS = [
-  { id: '1', name: 'Premium Hobby Box', price: 199.99, image: 'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=600&q=80', category: 'sealed' as const },
-  { id: '2', name: 'Vintage Graded PSA 10', price: 499.50, image: 'https://images.unsplash.com/photo-1605638202580-2c7001402245?w=600&q=80', category: 'singles' as const },
-  { id: '3', name: 'Rookie Autograph /99', price: 150.00, image: 'https://images.unsplash.com/photo-1613771404721-1f92d799e49f?w=600&q=80', category: 'singles' as const },
-  { id: '4', name: 'Retail Blaster Box', price: 29.99, image: 'https://images.unsplash.com/photo-1644329843491-9988a896323c?w=600&q=80', category: 'sealed' as const },
+  { id: '1', name: 'Premium Hobby Box', price: 199.99, image: '/assets/4244.JPG', category: 'sealed' as const },
+  { id: '2', name: 'Vintage Graded PSA 10', price: 499.50, image: '/assets/4242.JPG', category: 'singles' as const },
+  { id: '3', name: 'Rookie Autograph /99', price: 150.00, image: '/assets/4231.JPG', category: 'singles' as const },
+  { id: '4', name: 'Retail Blaster Box', price: 29.99, image: '/assets/4210.JPG', category: 'sealed' as const },
 ];
 
 export default function Home() {
@@ -57,7 +57,7 @@ export default function Home() {
             <p>Come browse our collection in person, trade with the community, and grab your favorite packs.</p>
             <div className={styles.addressInfo}>
               <strong>Top Rated Cards & Collectibles</strong><br/>
-              123 Collector's Avenue<br/>
+              123 Collector&apos;s Avenue<br/>
               Hobby City, CA 90210
             </div>
             <a href="https://maps.google.com" target="_blank" rel="noreferrer" className={`btn-primary ${styles.directionsBtn}`}>

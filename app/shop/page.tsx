@@ -6,14 +6,14 @@ import ProductCard from '@/components/ProductCard';
 import styles from './page.module.css';
 
 const MOCK_INVENTORY = [
-  { id: '1', name: 'Premium Hobby Box', price: 199.99, image: 'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=600&q=80', category: 'sealed' as const },
-  { id: '2', name: 'Vintage Graded PSA 10', price: 499.50, image: 'https://images.unsplash.com/photo-1605638202580-2c7001402245?w=600&q=80', category: 'singles' as const },
-  { id: '3', name: 'Rookie Autograph /99', price: 150.00, image: 'https://images.unsplash.com/photo-1613771404721-1f92d799e49f?w=600&q=80', category: 'singles' as const },
-  { id: '4', name: 'Retail Blaster Box', price: 29.99, image: 'https://images.unsplash.com/photo-1644329843491-9988a896323c?w=600&q=80', category: 'sealed' as const },
-  { id: '5', name: 'Elite Draft Picks Box', price: 120.00, image: 'https://images.unsplash.com/photo-1598155523122-3842334d6c1f?w=600&q=80', category: 'sealed' as const },
-  { id: '6', name: 'Base Set Holographic', price: 85.00, image: 'https://images.unsplash.com/photo-1620330104595-654cc3bdfab1?w=600&q=80', category: 'singles' as const },
-  { id: '7', name: 'Collector\'s Tin 2024', price: 45.00, image: 'https://images.unsplash.com/photo-1645366472403-1c3ce4bf8cc6?w=600&q=80', category: 'sealed' as const },
-  { id: '8', name: 'Signed Memorabilia Card', price: 350.00, image: 'https://images.unsplash.com/photo-1590487372990-2804245607db?w=600&q=80', category: 'singles' as const },
+  { id: '1', name: 'Premium Hobby Box', price: 199.99, image: '/assets/4244.JPG', category: 'sealed' as const },
+  { id: '2', name: 'Vintage Graded PSA 10', price: 499.50, image: '/assets/4242.JPG', category: 'singles' as const },
+  { id: '3', name: 'Rookie Autograph /99', price: 150.00, image: '/assets/4231.JPG', category: 'singles' as const },
+  { id: '4', name: 'Retail Blaster Box', price: 29.99, image: '/assets/4210.JPG', category: 'sealed' as const },
+  { id: '5', name: 'Elite Draft Picks Box', price: 120.00, image: '/assets/4211.JPG', category: 'sealed' as const },
+  { id: '6', name: 'Base Set Holographic', price: 85.00, image: '/assets/4215.JPG', category: 'singles' as const },
+  { id: '7', name: 'Collector\'s Tin 2024', price: 45.00, image: '/assets/4213.JPG', category: 'sealed' as const },
+  { id: '8', name: 'Signed Memorabilia Card', price: 350.00, image: '/assets/4226.JPG', category: 'singles' as const },
 ];
 
 function ShopContent() {

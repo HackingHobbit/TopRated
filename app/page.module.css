@@ -29,9 +29,8 @@
 
 .heroLogo {
   width: 100%;
-  max-width: 500px;
+  max-width: 457px;
   height: auto;
-  filter: drop-shadow(0 4px 16px rgba(237, 28, 46, 0.3));
 }
 
 .heroContent {
