@@ -7,11 +7,78 @@ const cartSubtotal = document.querySelector("[data-cart-subtotal]");
 const routeLinks = [...document.querySelectorAll("[data-route-link]")];
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+function readStoredJson(key, fallback, isValid = () => true) {
+  try {
+    const value = localStorage.getItem(key);
+    if (!value) return fallback;
+    const parsed = JSON.parse(value);
+    return isValid(parsed) ? parsed : fallback;
+  } catch {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character];
+  });
+}
+
+function safeUrl(value, fallback = "#") {
+  const text = String(value ?? "").trim();
+  if (!text) return fallback;
+
+  try {
+    const url = new URL(text, window.location.origin);
+    const isSameOriginRelative = !/^[a-z][a-z0-9+.-]*:/i.test(text);
+    if (["http:", "https:"].includes(url.protocol) || isSameOriginRelative) return text;
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
+}
+
+function pathRoute() {
+  const routes = {
+    "/": "home",
+    "/index.html": "home",
+    "/catalog": "shop",
+    "/catalog.html": "shop",
+    "/about": "about",
+    "/about.html": "about",
+    "/visit": "visit",
+    "/visit.html": "visit",
+    "/services": "sell",
+    "/services.html": "sell",
+  };
+  return routes[window.location.pathname] || "home";
+}
+
+function currentRoute() {
+  const hash = window.location.hash.slice(1);
+  const routeText = hash || pathRoute();
+  const queryIndex = routeText.indexOf("?");
+  const path = queryIndex === -1 ? routeText : routeText.slice(0, queryIndex);
+  const hashQuery = queryIndex === -1 ? "" : routeText.slice(queryIndex + 1);
+  const [page = "home", id = ""] = path.split("/");
+  const params = new URLSearchParams(hashQuery || window.location.search.slice(1));
+  return { page, id, params };
+}
+
 const store = {
-  cart: JSON.parse(localStorage.getItem("tr-cart") || "[]"),
-  requests: JSON.parse(localStorage.getItem("tr-requests") || "[]"),
-  offers: JSON.parse(localStorage.getItem("tr-offers") || "[]"),
-  ownerEdits: JSON.parse(localStorage.getItem("tr-owner-edits") || "{}"),
+  cart: readStoredJson("tr-cart", [], Array.isArray),
+  requests: readStoredJson("tr-requests", [], Array.isArray),
+  offers: readStoredJson("tr-offers", [], Array.isArray),
+  ownerEdits: readStoredJson("tr-owner-edits", {}, (value) => value && typeof value === "object" && !Array.isArray(value)),
   filters: {
     query: "",
     type: "all",
@@ -22,7 +89,13 @@ const store = {
 
 function product(id) {
   const base = products.find((item) => item.id === id);
-  return base ? { ...base, ...(store.ownerEdits[id] || {}) } : null;
+  if (!base) return null;
+
+  const edit = store.ownerEdits[id] || {};
+  const overrides = {};
+  if (Number.isFinite(edit.price) && edit.price >= 0) overrides.price = edit.price;
+  if (Number.isInteger(edit.stock) && edit.stock >= 0) overrides.stock = edit.stock;
+  return { ...base, ...overrides };
 }
 
 function allProducts() {
@@ -45,8 +118,8 @@ function saveOwnerEdits() {
 function image(item) {
   return `
     <div class="product-image">
-      <img src="${item.image}" alt="${item.name}" loading="lazy" />
-      <span>${item.status}</span>
+      <img src="${escapeHtml(safeUrl(item.image, ""))}" alt="${escapeHtml(item.name)}" loading="lazy" />
+      <span>${escapeHtml(item.status)}</span>
     </div>
   `;
 }
@@ -54,20 +127,20 @@ function image(item) {
 function productCard(item) {
   return `
     <article class="product-card">
-      <a href="#product/${item.id}" aria-label="View ${item.name}">
+      <a href="#product/${escapeHtml(item.id)}" aria-label="View ${escapeHtml(item.name)}">
         ${image(item)}
       </a>
       <div class="product-card-body">
         <div class="product-meta">
-          <span>${item.category}</span>
-          <span>${item.stock > 0 ? `${item.stock} available` : "Sold out"}</span>
+          <span>${escapeHtml(item.category)}</span>
+          <span>${item.stock > 0 ? `${escapeHtml(item.stock)} available` : "Sold out"}</span>
         </div>
-        <h3><a href="#product/${item.id}">${item.name}</a></h3>
-        <p>${item.description}</p>
-        <div class="tag-list">${item.tags.slice(0, 4).map((tag) => `<span>${tag}</span>`).join("")}</div>
+        <h3><a href="#product/${escapeHtml(item.id)}">${escapeHtml(item.name)}</a></h3>
+        <p>${escapeHtml(item.description)}</p>
+        <div class="tag-list">${item.tags.slice(0, 4).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>
         <div class="product-actions">
           <strong>${money.format(item.price)}</strong>
-          <button type="button" data-add-cart="${item.id}" ${item.stock < 1 ? "disabled" : ""}>Add to cart</button>
+          <button type="button" data-add-cart="${escapeHtml(item.id)}" ${item.stock < 1 ? "disabled" : ""}>Add to cart</button>
         </div>
       </div>
     </article>
@@ -76,11 +149,10 @@ function productCard(item) {
 
 function route() {
   closeCart();
-  const hash = window.location.hash.replace("#", "") || "home";
-  const [page, id] = hash.split("/");
+  const { page, id, params } = currentRoute();
   routeLinks.forEach((link) => link.classList.toggle("is-active", link.dataset.routeLink === page));
 
-  if (page === "shop") renderShop();
+  if (page === "shop") renderShop(params);
   else if (page === "product") renderProduct(id);
   else if (page === "sell") renderSell();
   else if (page === "about") renderAbout();
@@ -156,10 +228,7 @@ function renderHome() {
   `;
 }
 
-function parseShopParams() {
-  const hash = window.location.hash;
-  const queryString = hash.includes("?") ? hash.split("?")[1] : "";
-  const params = new URLSearchParams(queryString);
+function parseShopParams(params) {
   if (params.get("type")) store.filters.type = params.get("type");
   if (params.get("search")) store.filters.query = params.get("search");
 }
@@ -184,8 +253,8 @@ function filteredProducts() {
     });
 }
 
-function renderShop() {
-  parseShopParams();
+function renderShop(params = new URLSearchParams()) {
+  parseShopParams(params);
   const categories = ["all", ...new Set(allProducts().map((item) => item.category))];
   const items = filteredProducts();
 
@@ -201,7 +270,7 @@ function renderShop() {
         <h2>Filters</h2>
         <label>
           Search
-          <input data-filter-query type="search" value="${store.filters.query}" placeholder="Charizard, Ohtani, sleeves..." />
+          <input data-filter-query type="search" value="${escapeHtml(store.filters.query)}" placeholder="Charizard, Ohtani, sleeves..." />
         </label>
         <label>
           Inventory type
@@ -214,7 +283,7 @@ function renderShop() {
         <label>
           Category
           <select data-filter-category>
-            ${categories.map((category) => `<option value="${category}" ${store.filters.category === category ? "selected" : ""}>${category === "all" ? "All categories" : category}</option>`).join("")}
+            ${categories.map((category) => `<option value="${escapeHtml(category)}" ${store.filters.category === category ? "selected" : ""}>${category === "all" ? "All categories" : escapeHtml(category)}</option>`).join("")}
           </select>
         </label>
         <label>
@@ -254,24 +323,24 @@ function renderProduct(id) {
     <section class="product-detail">
       <div class="detail-media">${image(item)}</div>
       <div class="detail-info">
-        <span class="eyebrow">${item.category}</span>
-        <h1>${item.name}</h1>
-        <p>${item.description}</p>
+        <span class="eyebrow">${escapeHtml(item.category)}</span>
+        <h1>${escapeHtml(item.name)}</h1>
+        <p>${escapeHtml(item.description)}</p>
         <div class="detail-price">
           <strong>${money.format(item.price)}</strong>
           ${item.compareAt ? `<span>${money.format(item.compareAt)}</span>` : ""}
         </div>
         <div class="detail-actions">
-          <button class="button button-primary" type="button" data-add-cart="${item.id}" ${item.stock < 1 ? "disabled" : ""}>Add to cart</button>
+          <button class="button button-primary" type="button" data-add-cart="${escapeHtml(item.id)}" ${item.stock < 1 ? "disabled" : ""}>Add to cart</button>
           <button class="button button-ghost" type="button" data-open-request>Ask about this item</button>
         </div>
         <dl class="spec-list">
-          <div><dt>SKU</dt><dd>${item.sku}</dd></div>
-          <div><dt>Status</dt><dd>${item.status}</dd></div>
-          <div><dt>Available</dt><dd>${item.stock}</dd></div>
-          ${Object.entries(item.attributes).map(([key, value]) => `<div><dt>${key}</dt><dd>${value}</dd></div>`).join("")}
+          <div><dt>SKU</dt><dd>${escapeHtml(item.sku)}</dd></div>
+          <div><dt>Status</dt><dd>${escapeHtml(item.status)}</dd></div>
+          <div><dt>Available</dt><dd>${escapeHtml(item.stock)}</dd></div>
+          ${Object.entries(item.attributes).map(([key, value]) => `<div><dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}
         </dl>
-        <a class="source-link" href="${item.sourceUrl}" target="_blank" rel="noreferrer">Prototype source reference</a>
+        <a class="source-link" href="${escapeHtml(safeUrl(item.sourceUrl))}" target="_blank" rel="noreferrer">Prototype source reference</a>
       </div>
     </section>
 
@@ -337,11 +406,11 @@ function renderOwner() {
     .map(
       (item) => `
         <tr>
-          <td><strong>${item.name}</strong><span>${item.sku}</span></td>
-          <td>${item.category}</td>
-          <td><input data-owner-price="${item.id}" type="number" step="0.01" value="${item.price}" /></td>
-          <td><input data-owner-stock="${item.id}" type="number" step="1" value="${item.stock}" /></td>
-          <td>${item.status}</td>
+          <td><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.sku)}</span></td>
+          <td>${escapeHtml(item.category)}</td>
+          <td><input data-owner-price="${escapeHtml(item.id)}" type="number" step="0.01" min="0" value="${escapeHtml(item.price)}" /></td>
+          <td><input data-owner-stock="${escapeHtml(item.id)}" type="number" step="1" min="0" value="${escapeHtml(item.stock)}" /></td>
+          <td>${escapeHtml(item.status)}</td>
         </tr>
       `,
     )
@@ -351,17 +420,17 @@ function renderOwner() {
       (item) => `
         <article class="owner-card">
           <div>
-            <strong>${item.name}</strong>
-            <span>${item.sku}</span>
+            <strong>${escapeHtml(item.name)}</strong>
+            <span>${escapeHtml(item.sku)}</span>
           </div>
-          <small>${item.category} · ${item.status}</small>
+          <small>${escapeHtml(item.category)} · ${escapeHtml(item.status)}</small>
           <label>
             Price
-            <input data-owner-price="${item.id}" type="number" step="0.01" value="${item.price}" />
+            <input data-owner-price="${escapeHtml(item.id)}" type="number" step="0.01" min="0" value="${escapeHtml(item.price)}" />
           </label>
           <label>
             Stock
-            <input data-owner-stock="${item.id}" type="number" step="1" value="${item.stock}" />
+            <input data-owner-stock="${escapeHtml(item.id)}" type="number" step="1" min="0" value="${escapeHtml(item.stock)}" />
           </label>
         </article>
       `,
@@ -416,11 +485,11 @@ function renderCart() {
         .map(
           (line) => `
             <div class="cart-line">
-              <img src="${line.product.image}" alt="" />
+              <img src="${escapeHtml(safeUrl(line.product.image, ""))}" alt="" />
               <div>
-                <strong>${line.product.name}</strong>
+                <strong>${escapeHtml(line.product.name)}</strong>
                 <span>${line.qty} × ${money.format(line.product.price)}</span>
-                <button type="button" data-remove-cart="${line.id}">Remove</button>
+                <button type="button" data-remove-cart="${escapeHtml(line.id)}">Remove</button>
               </div>
             </div>
           `,
@@ -469,15 +538,19 @@ document.addEventListener("click", (event) => {
       [...document.querySelectorAll(selector)].filter((input) => input.getClientRects().length > 0);
 
     visibleOwnerInputs("[data-owner-price]").forEach((input) => {
+      const price = Number(input.value);
+      if (!Number.isFinite(price) || price < 0) return;
       store.ownerEdits[input.dataset.ownerPrice] = {
         ...(store.ownerEdits[input.dataset.ownerPrice] || {}),
-        price: Number(input.value),
+        price,
       };
     });
     visibleOwnerInputs("[data-owner-stock]").forEach((input) => {
+      const stock = Number(input.value);
+      if (!Number.isInteger(stock) || stock < 0) return;
       store.ownerEdits[input.dataset.ownerStock] = {
         ...(store.ownerEdits[input.dataset.ownerStock] || {}),
-        stock: Number(input.value),
+        stock,
       };
     });
     saveOwnerEdits();

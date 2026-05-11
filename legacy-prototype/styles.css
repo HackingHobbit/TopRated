@@ -85,40 +85,14 @@ a {
 .brand {
   align-items: center;
   display: inline-flex;
-  gap: 12px;
   min-width: max-content;
 }
 
-.brand-mark {
-  align-items: center;
-  background: linear-gradient(145deg, white, #e6eaf1);
-  border: 2px solid #151518;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.82), 0 0 20px rgba(237, 28, 46, 0.6);
-  color: var(--red);
-  display: inline-flex;
-  font-family: var(--display);
-  font-size: 28px;
-  height: 44px;
-  justify-content: center;
-  line-height: 1;
-  text-shadow: 1px 1px 0 #111;
-  transform: skew(-8deg);
-  width: 52px;
-}
-
-.brand strong {
+.brand-logo {
   display: block;
-  font-family: var(--display);
-  font-size: 27px;
-  line-height: 0.9;
-}
-
-.brand small {
-  color: var(--muted);
-  display: block;
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
+  height: clamp(50px, 5.4vw, 76px);
+  object-fit: contain;
+  width: auto;
 }
 
 .rail-nav {
@@ -455,6 +429,8 @@ h3 {
   border-radius: 16px;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.1);
   color: var(--navy);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   transition:
     box-shadow 160ms ease,
@@ -503,7 +479,9 @@ h3 {
 }
 
 .product-card-body {
-  display: grid;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   gap: 11px;
   padding: 16px;
 }
@@ -535,6 +513,7 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-bottom: auto;
 }
 
 .tag-list span {
@@ -551,6 +530,7 @@ h3 {
   display: grid;
   gap: 10px;
   grid-template-columns: 1fr auto;
+  margin-top: auto;
 }
 
 .product-actions strong,
@@ -1089,6 +1069,14 @@ td span {
     grid-template-columns: 1fr auto;
   }
 
+  .brand {
+    transform: translateY(4px);
+  }
+
+  .topbar-actions {
+    transform: translateY(-4px);
+  }
+
   .rail-nav {
     grid-column: 1 / -1;
     justify-content: start;
@@ -1129,18 +1117,9 @@ td span {
     gap: 12px;
   }
 
-  .brand strong {
-    font-size: 22px;
-  }
-
-  .brand small {
-    display: none;
-  }
-
-  .brand-mark {
-    font-size: 23px;
-    height: 36px;
-    width: 44px;
+  .brand-logo {
+    height: 44px;
+    max-width: 150px;
   }
 
   .topbar-actions {

@@ -3,22 +3,22 @@
 
 [[redirects]]
   from = "/catalog"
-  to = "/index.html#shop"
+  to = "/index.html"
   status = 200
 
 [[redirects]]
   from = "/about"
-  to = "/index.html#about"
+  to = "/index.html"
   status = 200
 
 [[redirects]]
   from = "/visit"
-  to = "/index.html#visit"
+  to = "/index.html"
   status = 200
 
 [[redirects]]
   from = "/services"
-  to = "/index.html#sell"
+  to = "/index.html"
   status = 200
 
 [[redirects]]

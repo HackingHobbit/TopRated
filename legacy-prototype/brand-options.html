@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Top Rated Brand Options</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #090a0f;
+        --ink: #f8fafc;
+        --muted: #9aa4b5;
+        --red: #f52338;
+        --red-dark: #bb1326;
+        --cyan: #55e8ff;
+        --steel: #d8dde7;
+        --navy: #121826;
+        --display: "Bebas Neue", Impact, sans-serif;
+        --body: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 72% 4%, rgba(85, 232, 255, 0.14), transparent 24rem),
+          radial-gradient(circle at 12% 12%, rgba(245, 35, 56, 0.2), transparent 24rem),
+          var(--bg);
+        color: var(--ink);
+        font-family: var(--body);
+        margin: 0;
+      }
+
+      main {
+        margin: 0 auto;
+        max-width: 1220px;
+        padding: 42px clamp(18px, 5vw, 64px) 64px;
+      }
+
+      header {
+        align-items: end;
+        display: flex;
+        gap: 24px;
+        justify-content: space-between;
+        margin-bottom: 30px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-family: var(--display);
+        font-size: clamp(56px, 8vw, 112px);
+        font-weight: 400;
+        line-height: 0.86;
+        text-transform: uppercase;
+      }
+
+      header p {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.5;
+        max-width: 410px;
+        text-align: right;
+        text-transform: uppercase;
+      }
+
+      .match-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 0.95fr 1.05fr;
+      }
+
+      .option-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .option {
+        background:
+          linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
+          #11141c;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        min-height: 360px;
+        overflow: hidden;
+        padding: 22px;
+      }
+
+      .option.hero-match {
+        min-height: 520px;
+      }
+
+      .reference-photo {
+        background:
+          linear-gradient(rgba(8, 9, 13, 0.08), rgba(8, 9, 13, 0.08)),
+          url("assets/4225.JPG");
+        background-position: 43% 31%;
+        background-size: 215%;
+        min-height: 520px;
+      }
+
+      .option.light {
+        background: #f7f8fb;
+        color: var(--navy);
+      }
+
+      .option-head {
+        align-items: baseline;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 26px;
+      }
+
+      .option h2 {
+        color: var(--red);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .option-head span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .stage {
+        align-items: center;
+        display: grid;
+        min-height: 220px;
+        place-items: center;
+      }
+
+      .hero-match .stage {
+        min-height: 300px;
+        overflow: hidden;
+      }
+
+      .match-svg {
+        display: block;
+        filter: drop-shadow(0 8px 11px rgba(3, 7, 18, 0.44));
+        margin: 0 auto;
+        max-width: 100%;
+        overflow: visible;
+        width: min(100%, 610px);
+      }
+
+      .match-svg text {
+        font-family: "Arial Black", Anton, Impact, sans-serif;
+        font-stretch: expanded;
+        font-weight: 900;
+        letter-spacing: -8px;
+        paint-order: stroke fill;
+        text-transform: uppercase;
+      }
+
+      .match-svg .sign-shadow {
+        fill: #6f7c89;
+        stroke: #26303a;
+        stroke-linejoin: round;
+        stroke-width: 21px;
+      }
+
+      .match-svg .sign-white {
+        fill: #f7f8fb;
+        stroke: #222830;
+        stroke-linejoin: round;
+        stroke-width: 16px;
+      }
+
+      .match-svg .sign-red {
+        fill: #f2243f;
+        stroke: #f7f8fb;
+        stroke-linejoin: round;
+        stroke-width: 6px;
+      }
+
+      .match-svg .sign-inner {
+        fill: transparent;
+        stroke: rgba(118, 12, 25, 0.62);
+        stroke-linejoin: round;
+        stroke-width: 2.5px;
+      }
+
+      .match-svg .bar-shadow {
+        fill: #6f7c89;
+        stroke: #26303a;
+        stroke-linejoin: round;
+        stroke-width: 12px;
+      }
+
+      .match-svg .bar-white {
+        fill: #f7f8fb;
+        stroke: #222830;
+        stroke-linejoin: round;
+        stroke-width: 8px;
+      }
+
+      .match-svg .bar-red {
+        fill: #f2243f;
+        stroke: #f7f8fb;
+        stroke-linejoin: round;
+        stroke-width: 3px;
+      }
+
+      .match-svg .descriptor-bg {
+        fill: rgba(132, 144, 155, 0.78);
+        stroke: #f5f7fb;
+        stroke-linejoin: round;
+        stroke-width: 3px;
+      }
+
+      .match-svg .descriptor {
+        fill: #f7f8fb;
+        font-family: Inter, Arial, sans-serif;
+        font-size: 23px;
+        font-weight: 900;
+        letter-spacing: -1.8px;
+        paint-order: stroke fill;
+        stroke: rgba(80, 92, 104, 0.68);
+        stroke-linejoin: round;
+        stroke-width: 4px;
+        text-transform: none;
+      }
+
+      .sign-wrap {
+        display: inline-grid;
+        padding: 18px 34px 24px;
+        transform: rotate(-9deg) skew(-7deg);
+        transform-origin: center;
+      }
+
+      .usage {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.5;
+        margin-top: 18px;
+      }
+
+      .light .usage,
+      .light .option-head span {
+        color: #647084;
+      }
+
+      .mini-row {
+        align-items: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        gap: 18px;
+        margin-top: 22px;
+        padding-top: 18px;
+      }
+
+      .light .mini-row {
+        border-top-color: #dbe1ea;
+      }
+
+      .sign-logo {
+        color: #f03358;
+        display: inline-grid;
+        font-family: var(--display);
+        font-size: 126px;
+        font-weight: 400;
+        letter-spacing: 0;
+        line-height: 0.72;
+        position: relative;
+        text-align: left;
+        text-shadow:
+          -2px -2px 0 #7b8794,
+          2px -2px 0 #7b8794,
+          -2px 2px 0 #7b8794,
+          2px 2px 0 #7b8794,
+          -6px -6px 0 #f6f7fb,
+          6px -6px 0 #f6f7fb,
+          -6px 6px 0 #f6f7fb,
+          6px 6px 0 #f6f7fb,
+          -9px -9px 0 #242a31,
+          9px -9px 0 #242a31,
+          -9px 9px 0 #242a31,
+          9px 9px 0 #242a31,
+          13px 13px 0 #6f7c8c,
+          17px 17px 0 rgba(3, 7, 18, 0.74),
+          0 0 18px rgba(240, 51, 88, 0.35);
+        text-transform: uppercase;
+      }
+
+      .sign-logo::after {
+        background: #f03358;
+        border: 5px solid #f6f7fb;
+        border-radius: 4px;
+        bottom: 22px;
+        box-shadow:
+          0 0 0 3px #242a31,
+          10px 10px 0 #6f7c8c,
+          12px 12px 0 rgba(3, 7, 18, 0.55);
+        content: "";
+        height: 22px;
+        left: -6px;
+        position: absolute;
+        transform: skew(-18deg);
+        width: 305px;
+        z-index: -1;
+      }
+
+      .sign-logo .line {
+        display: block;
+        position: relative;
+      }
+
+      .sign-logo .line + .line {
+        margin-left: -36px;
+        margin-top: 3px;
+      }
+
+      .sign-logo .tag {
+        align-self: end;
+        color: #dceaf1;
+        font-family: var(--body);
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        line-height: 0.95;
+        margin-left: 226px;
+        margin-top: -22px;
+        max-width: 110px;
+        text-shadow:
+          -2px -2px 0 #8293a4,
+          2px -2px 0 #8293a4,
+          -2px 2px 0 #8293a4,
+          2px 2px 0 #8293a4,
+          4px 4px 0 #253345,
+          0 0 10px rgba(85, 232, 255, 0.45);
+        text-transform: lowercase;
+        transform: rotate(9deg) skew(7deg);
+        z-index: 1;
+      }
+
+      .sign-logo.exact {
+        font-size: clamp(82px, 8.4vw, 124px);
+      }
+
+      .sign-logo.exact .tag {
+        font-size: clamp(12px, 1.35vw, 18px);
+        max-width: 132px;
+      }
+
+      .sign-logo.exact::after {
+        width: clamp(235px, 24vw, 330px);
+      }
+
+      .sign-logo.clean {
+        font-size: 96px;
+        text-shadow:
+          -2px -2px 0 #fff,
+          2px -2px 0 #fff,
+          -2px 2px 0 #fff,
+          2px 2px 0 #fff,
+          6px 6px 0 #34465b;
+      }
+
+      .sign-wrap.clean-wrap {
+        transform: rotate(-5deg) skew(-2deg);
+      }
+
+      .sign-logo.clean .tag {
+        color: #e9f3f7;
+        font-size: 12px;
+        margin-left: 112px;
+        text-shadow:
+          -1px -1px 0 #7890a0,
+          1px -1px 0 #7890a0,
+          -1px 1px 0 #7890a0,
+          1px 1px 0 #7890a0,
+          3px 3px 0 #2a384a;
+      }
+
+      .sign-logo.glow {
+        filter: drop-shadow(0 0 12px rgba(240, 51, 88, 0.55));
+        font-size: 118px;
+        text-shadow:
+          -4px -4px 0 #f9fbff,
+          4px -4px 0 #f9fbff,
+          -4px 4px 0 #f9fbff,
+          4px 4px 0 #f9fbff,
+          10px 10px 0 #2c4158,
+          12px 12px 0 rgba(3, 7, 18, 0.72),
+          0 0 30px rgba(240, 51, 88, 0.68);
+      }
+
+      .sign-wrap.glow-wrap {
+        transform: rotate(-7deg) skew(-3deg);
+      }
+
+      .sign-logo.compact {
+        font-size: 70px;
+        line-height: 0.74;
+        text-shadow:
+          -2px -2px 0 #fff,
+          2px -2px 0 #fff,
+          -2px 2px 0 #fff,
+          2px 2px 0 #fff,
+          5px 5px 0 #34465b;
+      }
+
+      .sign-wrap.compact-wrap {
+        transform: rotate(-6deg) skew(-2deg);
+      }
+
+      .sign-logo.compact .line + .line {
+        margin-left: -10px;
+      }
+
+      .sign-logo.compact .tag {
+        font-size: 10px;
+        margin-left: 78px;
+        max-width: 88px;
+        text-shadow:
+          -1px -1px 0 #7890a0,
+          1px -1px 0 #7890a0,
+          -1px 1px 0 #7890a0,
+          1px 1px 0 #7890a0,
+          2px 2px 0 #2a384a;
+      }
+
+      @media (max-width: 860px) {
+        header,
+        .match-grid,
+        .option-grid {
+          grid-template-columns: 1fr;
+        }
+
+        header {
+          align-items: start;
+          display: grid;
+        }
+
+        header p {
+          text-align: left;
+        }
+
+        .option-grid {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Original Sign<br />Digital Match</h1>
+        <p>A closer recreation of the photographed wall sign: slanted red stacked letters, white border, black pinstripe, gray depth, underline bar, and the small descriptor in the lower-right corner.</p>
+      </header>
+
+      <section class="match-grid">
+        <article class="option reference-photo">
+          <div class="option-head">
+            <h2>Reference</h2>
+            <span>Photo crop</span>
+          </div>
+        </article>
+
+        <article class="option hero-match">
+          <div class="option-head">
+            <h2>Digital match</h2>
+            <span>Original logo style</span>
+          </div>
+          <div class="stage">
+            <svg class="match-svg" viewBox="0 0 760 430" role="img" aria-label="Top Rated Cards and Collectibles original sign match">
+              <defs>
+                <path id="rated-bar" d="M116 292 L552 238 L590 263 L145 326 Z" />
+              </defs>
+              <g transform="translate(12 12) rotate(-10 348 205) skewX(-4)">
+                <use class="bar-shadow" href="#rated-bar" transform="translate(17 17)" />
+                <use class="bar-white" href="#rated-bar" />
+                <use class="bar-red" href="#rated-bar" />
+
+                <g transform="translate(13 17)">
+                  <text class="sign-shadow" x="267" y="145" font-size="147">TOP</text>
+                  <text class="sign-shadow" x="64" y="278" font-size="157">RATED</text>
+                </g>
+                <text class="sign-white" x="267" y="145" font-size="147">TOP</text>
+                <text class="sign-white" x="64" y="278" font-size="157">RATED</text>
+                <text class="sign-red" x="267" y="145" font-size="147">TOP</text>
+                <text class="sign-red" x="64" y="278" font-size="157">RATED</text>
+                <text class="sign-inner" x="267" y="145" font-size="147">TOP</text>
+                <text class="sign-inner" x="64" y="278" font-size="157">RATED</text>
+
+                <g transform="translate(500 245) rotate(6) skewX(3)">
+                  <rect class="descriptor-bg" x="-8" y="-8" width="148" height="78" rx="11" />
+                  <text class="descriptor" x="0" y="25">Cards &</text>
+                  <text class="descriptor" x="0" y="58">Collectibles</text>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <p class="usage">This is the version to keep refining into the actual website asset. It follows the original sign composition instead of inventing a new lockup.</p>
+        </article>
+      </section>
+
+      <section class="option-grid" style="margin-top: 18px">
+        <article class="option">
+          <div class="option-head">
+            <h2>Scale test</h2>
+            <span>Cleaner website cut</span>
+          </div>
+          <div class="stage">
+            <div class="sign-wrap clean-wrap">
+              <div class="sign-logo clean" aria-label="Top Rated cleaner sign logo option">
+                <span class="line">Top</span>
+                <span class="line">Rated</span>
+                <span class="tag">cards & collectibles</span>
+              </div>
+            </div>
+          </div>
+          <p class="usage">Same composition, slightly simplified for the site header and product pages. It keeps the sign personality without getting too noisy at medium sizes.</p>
+        </article>
+
+        <article class="option">
+          <div class="option-head">
+            <h2>Option 03</h2>
+            <span>Lit hero version</span>
+          </div>
+          <div class="stage">
+            <div class="sign-wrap glow-wrap">
+              <div class="sign-logo glow" aria-label="Top Rated glowing sign logo option">
+                <span class="line">Top</span>
+                <span class="line">Rated</span>
+                <span class="tag">cards & collectibles</span>
+              </div>
+            </div>
+          </div>
+          <p class="usage">A more neon-forward version for hero artwork, social graphics, stickers, and anywhere the brand should feel like the physical store sign on the wall.</p>
+        </article>
+
+        <article class="option light">
+          <div class="option-head">
+            <h2>Option 04</h2>
+            <span>Compact header mark</span>
+          </div>
+          <div class="stage">
+            <div class="sign-wrap compact-wrap">
+              <div class="sign-logo compact" aria-label="Top Rated compact sign logo option">
+                <span class="line">Top</span>
+                <span class="line">Rated</span>
+                <span class="tag">cards & collectibles</span>
+              </div>
+            </div>
+          </div>
+          <p class="usage">A smaller sign-faithful variant for the sticky nav, receipt-style surfaces, mobile headers, and spots where the full wall-sign treatment needs to stay compact.</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
