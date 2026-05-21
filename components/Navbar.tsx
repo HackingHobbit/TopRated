@@ -12,7 +12,33 @@ export default function Navbar() {
         
         <nav className={styles.navLinks}>
           <Link href="/" className={styles.link}>Home</Link>
-          <Link href="/shop" className={styles.link}>Shop</Link>
+          
+          <div className={styles.dropdownContainer}>
+            <Link href="/shop" className={styles.link}>Shop</Link>
+            <div className={styles.dropdownMenu}>
+              <div className={styles.dropdownGrid}>
+                <div className={styles.dropdownColumn}>
+                  <h4>Sports</h4>
+                  <Link href="/shop?subCategory=NFL">NFL</Link>
+                  <Link href="/shop?subCategory=NBA">NBA</Link>
+                  <Link href="/shop?subCategory=MLB">MLB</Link>
+                </div>
+                <div className={styles.dropdownColumn}>
+                  <h4>TCG</h4>
+                  <Link href="/shop?subCategory=Pokémon">Pokémon</Link>
+                  <Link href="/shop?subCategory=Marvel">Marvel</Link>
+                  <Link href="/shop?subCategory=Disney">Disney</Link>
+                </div>
+                <div className={styles.dropdownColumn}>
+                  <h4>Other</h4>
+                  <Link href="/shop?category=services">PSA Submission</Link>
+                  <Link href="/shop?subCategory=Accessories">Accessories</Link>
+                  <Link href="/shop?subCategory=Memorabilia">Memorabilia</Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <Link href="/about" className={styles.link}>About Us</Link>
         </nav>
         

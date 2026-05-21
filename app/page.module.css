@@ -25,12 +25,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
 }
 
 .heroLogo {
   width: 100%;
-  max-width: 457px;
+  max-width: 450px;
   height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 25px rgba(237, 28, 46, 0.4));
+  margin: 0 auto;
 }
 
 .heroContent {
