@@ -2,9 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(8, 9, 13, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-primary); /* Solid background to prevent overlap mess */
   border-bottom: 1px solid var(--border-subtle);
 }
 

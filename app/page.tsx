@@ -86,6 +86,32 @@ export default async function Home() {
         </section>
       </ScrollReveal>
 
+      {/* News & Events */}
+      <ScrollReveal>
+        <section className={`container ${styles.featured}`}>
+          <div className={styles.sectionHeader}>
+            <h2>News & Upcoming Events</h2>
+          </div>
+          <div className={styles.eventsGrid}>
+            <div className={`glass-panel ${styles.eventCard}`}>
+              <h3>Friday Night Magic</h3>
+              <p className={styles.eventDate}>Every Friday @ 7:00 PM</p>
+              <p>Join us for our weekly MTG Commander night. Prizes for top players!</p>
+            </div>
+            <div className={`glass-panel ${styles.eventCard}`}>
+              <h3>Pokémon Trade & Play</h3>
+              <p className={styles.eventDate}>Saturdays @ 12:00 PM</p>
+              <p>Bring your binders! A family-friendly event for trading and learning to play.</p>
+            </div>
+            <div className={`glass-panel ${styles.eventCard}`}>
+              <h3>New Set Release Party</h3>
+              <p className={styles.eventDate}>Coming Next Month</p>
+              <p>Midnight release draft event. Pre-register to secure your spot!</p>
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
       <ScrollReveal>
         <section className={`container ${styles.visitUs}`}>
           <div className={`glass-panel ${styles.visitCard}`}>
