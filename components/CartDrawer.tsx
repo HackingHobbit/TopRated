@@ -1,12 +1,25 @@
 "use client";
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
 import styles from './CartDrawer.module.css';
 import { X, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 
 export default function CartDrawer() {
   const { isCartOpen, toggleCart, cart, updateQuantity, removeFromCart, totalPrice } = useCart();
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  const handleCheckout = () => {
+    toggleCart(); // Close drawer
+    if (isAuthenticated) {
+      router.push('/checkout');
+    } else {
+      router.push('/login');
+    }
+  };
 
   const SHIPPING_THRESHOLD = 300;
   const progress = Math.min((totalPrice / SHIPPING_THRESHOLD) * 100, 100);
@@ -98,7 +111,7 @@ export default function CartDrawer() {
               <span className={styles.totalPrice}>${totalPrice.toFixed(2)}</span>
             </div>
             <p className={styles.taxesText}>Taxes and shipping calculated at checkout</p>
-            <button className={styles.checkoutBtn}>
+            <button className={styles.checkoutBtn} onClick={handleCheckout}>
               Proceed to Checkout
             </button>
           </div>

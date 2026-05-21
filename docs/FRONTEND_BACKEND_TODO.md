@@ -14,12 +14,20 @@ This document serves as the master checklist and source of truth for the project
 - [x] Home Page dynamic sections added (Featured, Pre-Orders, New Releases).
 - [x] Shop Page Advanced Sidebar Filtering complete.
 
-## Phase 3: Global State & Shopping Cart (🏗️ Next up)
+## Phase 3: Global State & Shopping Cart (✅ Completed)
 **Frontend Tasks:**
-- [ ] Implement React Context / Zustand for Global Cart State across the app.
-- [ ] Build Slide-out Cart Drawer UI.
-- [ ] Implement cart constraints: Force Maximum 3 quantity limit per item.
-- [ ] Implement Free Shipping progress bar (Calculate cart total -> unlock at $300).
+- [x] Implement React Context / Zustand for Global Cart State across the app.
+- [x] Build Slide-out Cart Drawer UI.
+- [x] Implement cart constraints: Force Maximum 3 quantity limit per item.
+- [x] Implement Free Shipping progress bar (Calculate cart total -> unlock at $300).
+
+## Phase 3.5: Core Frontend Flows (🏗️ Next up)
+**Frontend Tasks:**
+- [ ] **Product Detail Page:** Build `app/shop/[id]/page.tsx` with dynamic routing, image gallery, and full description.
+- [ ] **ProductCard Linking:** Wrap ProductCards in Next.js `<Link>` tags to navigate to details.
+- [ ] **Mock Checkout Flow:** Build `app/checkout/page.tsx` with shipping form and mock payment success screen.
+- [ ] **Customer Profile Dashboard:** Overhaul `app/account/page.tsx` to be dynamic (mocked state for now) instead of hardcoded JSX.
+- [ ] **Admin Portal Expansion:** Add a Dashboard and Orders page to `app/admin`.
 
 ## Phase 4: Supabase Integration & Auth (⏳ Pending)
 **Backend Tasks:**
