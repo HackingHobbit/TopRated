@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
+import CartDrawer from "@/components/CartDrawer";
 import "./globals.css";
+import { CartProvider } from '@/contexts/CartContext';
 
 export const metadata: Metadata = {
   title: "Top Rated | Cards & Collectibles",
@@ -15,8 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        <main>{children}</main>
+        <CartProvider>
+          <Navbar />
+          <CartDrawer />
+          <main>{children}</main>
+        </CartProvider>
       </body>
     </html>
   );
