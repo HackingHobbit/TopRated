@@ -1,47 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
-import styles from './ScrollReveal.module.css';
+import { motion } from 'framer-motion';
 
 export default function ScrollReveal({ children }: { children: React.ReactNode }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const domRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        // Only trigger the animation if it's actually intersecting 
-        // and we haven't already made it visible
-        if (entry.isIntersecting) {
-          // Use a tiny timeout to ensure the browser has painted the initial opacity: 0 state
-          // before applying the opacity: 1 state, forcing the CSS transition to run.
-          setTimeout(() => {
-            setIsVisible(true);
-          }, 50);
-          
-          // Stop observing once it has revealed
-          if (domRef.current) observer.unobserve(domRef.current);
-        }
-      });
-    }, { 
-      threshold: 0.1,
-      rootMargin: "0px 0px -50px 0px" // Trigger slightly before it hits the bottom
-    });
-
-    const currentRef = domRef.current;
-    if (currentRef) observer.observe(currentRef);
-
-    return () => {
-      if (currentRef) observer.unobserve(currentRef);
-    };
-  }, []);
-
   return (
-    <div
-      className={`${styles.revealSection} ${isVisible ? styles.isVisible : ''}`}
-      ref={domRef}
+    <motion.div
+      initial={{ opacity: 0, y: 40, scale: 0.98 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }

@@ -1,12 +1,5 @@
+import type { Product } from '../lib/db';
 import styles from './ProductCard.module.css';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  category: 'sealed' | 'singles';
-}
 
 export default function ProductCard({ product }: { product: Product }) {
   return (
@@ -18,7 +11,7 @@ export default function ProductCard({ product }: { product: Product }) {
           className={styles.image} 
         />
         <span className={styles.badge}>
-          {product.category === 'sealed' ? 'Packaged' : 'Single'}
+          {product.isSealed ? 'Sealed' : 'Single'}
         </span>
       </div>
       <div className={styles.content}>
