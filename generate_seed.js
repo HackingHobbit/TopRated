@@ -16,29 +16,49 @@ const IMAGE_PLACEHOLDERS = {
 };
 
 const products = [];
-let idCounter = 1;
 
-for (const [mainCategory, subCategories] of Object.entries(CATEGORIES)) {
-  for (const sub of subCategories) {
-    for (let i = 1; i <= 10; i++) {
+const KEYWORDS = {
+  'NFL': 'football',
+  'NBA': 'basketball',
+  'MLB': 'baseball',
+  'NHL': 'hockey',
+  'WNBA': 'wnba,basketball',
+  'Soccer': 'soccer',
+  'Combat': 'ufc,boxing',
+  'Pokémon': 'pokemon',
+  'Marvel': 'marvel',
+  'Disney': 'disney',
+  'My Little Pony': 'pony',
+  'One Piece': 'anime,onepiece',
+  'Accessories': 'box',
+  'Memorabilia': 'autograph',
+  'Store Merch': 'merchandise',
+  'PSA Submission': 'psa'
+};
+
+let counter = 0;
+
+for (const [cat, subCategories] of Object.entries(CATEGORIES)) {
+  for (const subCat of subCategories) {
+    for (let j = 1; j <= 10; j++) {
+      counter++;
       const isSealed = Math.random() > 0.5;
-      
+      const keyword = KEYWORDS[subCat] || 'collection';
+
       products.push({
-        id: `prod_${idCounter++}`,
-        name: `${sub} - Item ${i} ${isSealed ? 'Box' : 'Single Card'}`,
-        description: `Premium ${sub} item perfect for any collection. Guaranteed authenticity and high quality.`,
-        price: parseFloat((Math.random() * 200 + 10).toFixed(2)),
-        image: IMAGE_PLACEHOLDERS[mainCategory],
-        category: mainCategory,
-        subCategory: sub,
-        isSealed: mainCategory === 'services' ? false : isSealed,
-        
-        // Flags
+        id: crypto.randomUUID(),
+        name: `${subCat} - Item ${j} ${isSealed ? 'Box' : 'Single Card'}`,
+        description: `Premium ${isSealed ? 'sealed box' : 'single card'} for ${subCat} collectors.`,
+        price: parseFloat((Math.random() * (isSealed ? 200 : 50) + 10).toFixed(2)),
+        image: `https://loremflickr.com/600/800/${keyword}?lock=${counter}`,
+        category: cat,
+        subCategory: subCat,
+        isSealed,
         isSale: Math.random() > 0.8,
-        isFeatured: Math.random() > 0.9,
+        isFeatured: Math.random() > 0.8,
         isNewRelease: Math.random() > 0.85,
-        isOutOfStock: Math.random() > 0.95,
-        isLimited: Math.random() > 0.8,
+        isOutOfStock: Math.random() > 0.9,
+        isLimited: Math.random() > 0.9,
         isPreOrder: Math.random() > 0.9
       });
     }

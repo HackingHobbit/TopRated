@@ -128,9 +128,7 @@ export default async function Home() {
               </a>
             </div>
             <div className={styles.mapPlaceholder}>
-              <div className={styles.mapFallback}>
-                Interactive Map Integration
-              </div>
+              <img src="/map.png" alt="Store Location Map" className={styles.mapImage} />
             </div>
           </div>
         </section>
