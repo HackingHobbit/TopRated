@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useMemo } from 'react';
 import { Product } from '@/lib/db';
+import { useToast } from '@/contexts/ToastContext';
 
 export interface CartItem {
   product: Product;
@@ -25,6 +26,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const { addToast } = useToast();
 
   const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   const totalPrice = useMemo(() => cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), [cart]);
@@ -36,14 +38,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (existingItem) {
         // Enforce maximum 3 items per product rule
         if (existingItem.quantity >= 3) {
+          addToast({
+            title: "Limit Reached",
+            message: "You can only add up to 3 of this item.",
+            type: "error"
+          });
           return prevCart; // Do not increase further
         }
+        addToast({
+          title: "Cart Updated",
+          message: `Increased quantity of ${product.name} to ${existingItem.quantity + 1}.`,
+          type: "success"
+        });
         return prevCart.map((item) => 
           item.product.id === product.id 
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
+        addToast({
+          title: "Added to Cart",
+          message: `${product.name} was added to your cart.`,
+          type: "success"
+        });
         return [...prevCart, { product, quantity: 1 }];
       }
     });
@@ -53,7 +70,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromCart = (productId: string) => {
-    setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
+    setCart((prevCart) => {
+      const item = prevCart.find(i => i.product.id === productId);
+      if (item) {
+        addToast({
+          title: "Removed from Cart",
+          message: `${item.product.name} was removed.`,
+          type: "info"
+        });
+      }
+      return prevCart.filter((item) => item.product.id !== productId);
+    });
   };
 
   const updateQuantity = (productId: string, quantity: number) => {

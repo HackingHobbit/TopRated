@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { Product } from '@/lib/db';
 import { useCart } from '@/contexts/CartContext';
+import { useWantList } from '@/contexts/WantListContext';
+import { Heart } from 'lucide-react';
 import styles from './ProductCard.module.css';
 
 interface ProductCardProps {
@@ -11,15 +13,23 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart, cart } = useCart();
+  const { isFavorite, toggleFavorite } = useWantList();
   
   const cartItem = cart.find(item => item.product.id === product.id);
   const isAtMaxLimit = cartItem ? cartItem.quantity >= 3 : false;
+  
+  const favorited = isFavorite(product.id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation when clicking add to cart
     if (!isAtMaxLimit) {
       addToCart(product);
     }
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toggleFavorite(product);
   };
 
   return (
@@ -31,6 +41,15 @@ export default function ProductCard({ product }: ProductCardProps) {
             alt={product.name} 
             className={styles.image} 
           />
+          
+          <button 
+            className={`${styles.favoriteBtn} ${favorited ? styles.favorited : ''}`}
+            onClick={handleToggleFavorite}
+            aria-label={favorited ? "Remove from want list" : "Add to want list"}
+          >
+            <Heart size={20} fill={favorited ? "currentColor" : "none"} />
+          </button>
+
           <div className={styles.badges}>
             <span className={`${styles.badge} ${styles.typeBadge}`}>
               {product.isSealed ? 'Sealed' : 'Single'}

@@ -183,3 +183,30 @@
   color: var(--text-muted);
   line-height: 1.5;
 }
+
+.favoriteBtn {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.favoriteBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.favoriteBtn.favorited {
+  color: var(--accent-red);
+  border-color: rgba(237, 28, 46, 0.5);
+  background: rgba(237, 28, 46, 0.1);
+}

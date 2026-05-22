@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/lib/db';
 import styles from './page.module.css';
+import { Search } from 'lucide-react';
 
 export default function ShopClient({ initialProducts }: { initialProducts: Product[] }) {
   const searchParams = useSearchParams();
@@ -11,6 +13,14 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   
   const currentMainCategory = searchParams.get('category') || 'All';
   const currentSubCategory = searchParams.get('subCategory') || 'All';
+  const urlSearch = searchParams.get('search') || '';
+
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
+  const [sortBy, setSortBy] = useState('newest');
+  
+  // Toggles
+  const [showOnlySale, setShowOnlySale] = useState(false);
+  const [showOnlyPreOrder, setShowOnlyPreOrder] = useState(false);
 
   // Extract unique main categories and subcategories
   const mainCategories = ['All', ...Array.from(new Set(initialProducts.map(p => p.category)))];
@@ -21,11 +31,33 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   ))];
 
   // Filter products
-  const filteredProducts = initialProducts.filter(item => {
-    const matchMain = currentMainCategory === 'All' || item.category === currentMainCategory;
-    const matchSub = currentSubCategory === 'All' || item.subCategory === currentSubCategory;
-    return matchMain && matchSub;
-  });
+  const filteredProducts = useMemo(() => {
+    let result = initialProducts.filter(item => {
+      const matchMain = currentMainCategory === 'All' || item.category === currentMainCategory;
+      const matchSub = currentSubCategory === 'All' || item.subCategory === currentSubCategory;
+      const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchSale = showOnlySale ? item.isSale : true;
+      const matchPreOrder = showOnlyPreOrder ? item.isPreOrder : true;
+
+      return matchMain && matchSub && matchSearch && matchSale && matchPreOrder;
+    });
+
+    // Sort products
+    switch (sortBy) {
+      case 'price_asc':
+        return result.sort((a, b) => a.price - b.price);
+      case 'price_desc':
+        return result.sort((a, b) => b.price - a.price);
+      case 'name_asc':
+        return result.sort((a, b) => a.name.localeCompare(b.name));
+      case 'newest':
+      default:
+        // Mocking newest by putting new releases first
+        return result.sort((a, b) => (b.isNewRelease ? 1 : 0) - (a.isNewRelease ? 1 : 0));
+    }
+  }, [initialProducts, currentMainCategory, currentSubCategory, searchQuery, showOnlySale, showOnlyPreOrder, sortBy]);
 
   const handleMainCategoryChange = (category: string) => {
     router.push(`/shop?category=${category}&subCategory=All`);
@@ -40,6 +72,54 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
       <aside className={`glass-panel ${styles.sidebar}`}>
         <h3>Filters</h3>
         
+        <div className={styles.searchContainer}>
+          <input 
+            type="text" 
+            placeholder="Search products..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
+
+        <div className={styles.filterSection}>
+          <h4>Sort By</h4>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            className={styles.selectInput}
+          >
+            <option value="newest">Newest Additions</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="name_asc">Name: A to Z</option>
+          </select>
+        </div>
+
+        <div className={styles.filterSection}>
+          <h4>Availability</h4>
+          <div className={styles.filterList}>
+            <label className={styles.toggleLabel}>
+              <input 
+                type="checkbox" 
+                checked={showOnlySale}
+                onChange={(e) => setShowOnlySale(e.target.checked)}
+                className={styles.checkbox}
+              />
+              On Sale
+            </label>
+            <label className={styles.toggleLabel}>
+              <input 
+                type="checkbox" 
+                checked={showOnlyPreOrder}
+                onChange={(e) => setShowOnlyPreOrder(e.target.checked)}
+                className={styles.checkbox}
+              />
+              Pre-Orders Only
+            </label>
+          </div>
+        </div>
+
         <div className={styles.filterSection}>
           <h4>Main Category</h4>
           <div className={styles.filterList}>

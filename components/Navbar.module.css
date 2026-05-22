@@ -151,3 +151,163 @@
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-full);
 }
+
+.searchForm {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.searchInput {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  width: 200px;
+  transition: all var(--transition-fast);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--border-strong);
+  width: 250px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.searchBtn {
+  position: absolute;
+  left: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.searchInput:focus + .searchBtn {
+  color: var(--text-primary);
+}
+
+.mobileMenuBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* Base Responsive */
+@media (max-width: 900px) {
+  .searchForm {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .navLinks {
+    display: none; /* We'll implement mobile menu state in next step */
+  }
+  
+  .mobileMenuBtn {
+    display: block;
+  }
+}
+
+.mobileMenuOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 17, 23, 0.98);
+  backdrop-filter: blur(10px);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+}
+
+.mobileMenuOverlay.open {
+  transform: translateX(0);
+}
+
+.mobileMenuHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.mobileLogo {
+  height: 40px;
+}
+
+.closeMenuBtn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.mobileSearchForm {
+  position: relative;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.mobileSearchInput {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.mobileSearchBtn {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+}
+
+.mobileNavLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mobileNavLinks a {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.mobileDivider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 1rem 0;
+}
+
+.mobileActionBtn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  padding: 0;
+  cursor: pointer;
+}

@@ -1,30 +1,46 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Product, getProducts } from '@/lib/db';
 import { useCart } from '@/contexts/CartContext';
+import { useWantList } from '@/contexts/WantListContext';
+import { Heart } from 'lucide-react';
 import styles from './page.module.css';
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
+export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const { addToCart, cart } = useCart();
+  const { isFavorite, toggleFavorite } = useWantList();
 
   useEffect(() => {
+    let isMounted = true;
     async function loadProduct() {
-      const allProducts = await getProducts();
-      const found = allProducts.find(p => p.id === params.id);
-      if (found) {
-        setProduct(found);
-      } else {
-        notFound();
+      try {
+        const allProducts = await getProducts();
+        const found = allProducts.find(p => p.id === id);
+        if (isMounted) {
+          if (found) {
+            setProduct(found);
+          } else {
+            // Can't use notFound() in a useEffect, route to 404 manually or handle error
+            router.push('/404');
+          }
+        }
+      } catch (err) {
+        console.error("Error loading product:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
     }
     loadProduct();
-  }, [params.id]);
+    return () => { isMounted = false; };
+  }, [id, router]);
 
   if (loading) {
     return <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>Loading...</div>;
@@ -51,6 +67,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     
     // For now, we will just call it once for simplicity, and log a warning.
     addToCart(product);
+  };
+
+  const favorited = isFavorite(product.id);
+
+  const handleToggleFavorite = () => {
+    toggleFavorite(product);
   };
 
   return (
@@ -100,6 +122,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               disabled={isAtMaxLimit}
             >
               {isAtMaxLimit ? 'Max Cart Limit (3) Reached' : 'Add to Cart'}
+            </button>
+            <button 
+              className={`${styles.favoriteBtn} ${favorited ? styles.favorited : ''}`}
+              onClick={handleToggleFavorite}
+              aria-label={favorited ? "Remove from want list" : "Add to want list"}
+            >
+              <Heart size={24} fill={favorited ? "currentColor" : "none"} />
             </button>
           </div>
           
