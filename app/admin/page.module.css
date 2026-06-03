@@ -175,3 +175,95 @@
   background: rgba(16, 185, 129, 0.2);
   color: #10b981;
 }
+
+.tierBronze {
+  background: rgba(180, 83, 9, 0.2);
+  color: #fbbf24;
+}
+
+.tierSilver {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+.tierGold {
+  background: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+}
+
+.tierDiamond {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.headerActions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
+
+.fulfillBtn {
+  background: none;
+  border: 1px solid var(--accent-red);
+  color: var(--accent-red);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.fulfillBtn:hover {
+  background: rgba(237, 28, 46, 0.1);
+}
+
+.viewBtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.viewBtn:hover {
+  color: var(--text-primary);
+}
+
+.customerId {
+  font-family: monospace;
+  color: var(--text-muted);
+}
+
+.customerName {
+  font-weight: 600;
+}
+
+.customerEmail {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
