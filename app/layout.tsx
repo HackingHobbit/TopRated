@@ -1,17 +1,37 @@
-import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import CartDrawer from "@/components/CartDrawer";
-import Footer from "@/components/Footer";
-import ToastContainer from "@/components/Toast";
-import "./globals.css";
+import type { Metadata, Viewport } from 'next';
+import Navbar from '@/components/Navbar';
+import CartDrawer from '@/components/CartDrawer';
+import Footer from '@/components/Footer';
+import ToastContainer from '@/components/Toast';
+import './globals.css';
 import { CartProvider } from '@/contexts/CartContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { WantListProvider } from '@/contexts/WantListContext';
 
+// TODO(perf): swap the Google Fonts @import in globals.css for next/font/google:
+//
+//   import { Inter, Outfit } from 'next/font/google';
+//   const inter = Inter({ subsets: ['latin'], weight: ['400','500','600','700','800'],
+//                         variable: '--font-sans', display: 'swap' });
+//   const outfit = Outfit({ subsets: ['latin'], weight: ['400','500','600','700','800'],
+//                           variable: '--font-heading', display: 'swap' });
+//   // …then apply `${inter.variable} ${outfit.variable}` to <html>.
+//
+// That eliminates the render-blocking CSS request, self-hosts the woff2 files,
+// and avoids a Google dependency. It does need outbound network to
+// fonts.googleapis.com at build time, which not every CI sandbox allows.
+
 export const metadata: Metadata = {
-  title: "Top Rated | Cards & Collectibles",
-  description: "Modern storefront for premium trading cards, sealed products, and collectibles.",
+  title: 'Top Rated | Cards & Collectibles',
+  description:
+    'Modern storefront for premium trading cards, sealed products, and collectibles.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#08090d',
 };
 
 export default function RootLayout({
@@ -22,8 +42,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider>
-          <ToastProvider>
+        <ToastProvider>
+          <AuthProvider>
             <WantListProvider>
               <CartProvider>
                 <Navbar />
@@ -33,8 +53,8 @@ export default function RootLayout({
                 <ToastContainer />
               </CartProvider>
             </WantListProvider>
-          </ToastProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

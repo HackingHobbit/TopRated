@@ -1,21 +1,28 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
-import { Product } from '@/lib/db';
+import { Product } from '@/lib/types';
 import styles from './page.module.css';
-import { Search } from 'lucide-react';
 
 export default function ShopClient({ initialProducts }: { initialProducts: Product[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const currentMainCategory = searchParams.get('category') || 'All';
   const currentSubCategory = searchParams.get('subCategory') || 'All';
   const urlSearch = searchParams.get('search') || '';
 
   const [searchQuery, setSearchQuery] = useState(urlSearch);
+
+  // Sync the local search input with ?search= when the URL changes (e.g.
+  // navigating between dropdown items like ?search=Pokemon and ?search=Magic).
+  // Without this the input keeps its first-mount value.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSearchQuery(urlSearch);
+  }, [urlSearch]);
   const [sortBy, setSortBy] = useState('newest');
   
   // Toggles
@@ -32,7 +39,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
 
   // Filter products
   const filteredProducts = useMemo(() => {
-    let result = initialProducts.filter(item => {
+    const result = initialProducts.filter(item => {
       const matchMain = currentMainCategory === 'All' || item.category === currentMainCategory;
       const matchSub = currentSubCategory === 'All' || item.subCategory === currentSubCategory;
       const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 

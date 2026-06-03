@@ -1,112 +1,131 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import styles from './page.module.css';
 import ProductCard from '@/components/ProductCard';
 import ScrollReveal from '@/components/ScrollReveal';
+import type { Product } from '@/lib/types';
 
 import { getProducts } from '@/lib/db';
 
+interface ProductSectionProps {
+  title: string;
+  cta: { href: string; label: string };
+  products: Product[];
+}
+
+function ProductSection({ title, cta, products }: ProductSectionProps) {
+  if (products.length === 0) return null;
+  return (
+    <ScrollReveal>
+      <section className={`container ${styles.featured}`}>
+        <div className={styles.sectionHeader}>
+          <h2>{title}</h2>
+          <Link href={cta.href} className={styles.viewAll}>
+            {cta.label}
+          </Link>
+        </div>
+        <div className={styles.grid}>
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </section>
+    </ScrollReveal>
+  );
+}
+
 export default async function Home() {
-  const featuredProducts = await getProducts();
-  const topFeatured = featuredProducts.filter(p => p.isFeatured).slice(0, 4);
-  const newReleases = featuredProducts.filter(p => p.isNewRelease).slice(0, 4);
-  const preOrders = featuredProducts.filter(p => p.isPreOrder).slice(0, 4);
+  const allProducts = await getProducts();
+  const topFeatured = allProducts.filter((p) => p.isFeatured).slice(0, 4);
+  const newReleases = allProducts.filter((p) => p.isNewRelease).slice(0, 4);
+  const preOrders = allProducts.filter((p) => p.isPreOrder).slice(0, 4);
 
   return (
     <div className={styles.container}>
       <ScrollReveal>
         <section className={styles.hero}>
           <div className={styles.heroLogoWrapper}>
-            <img 
-              src="/assets/top-rated-logo.png" 
-              alt="Top Rated Cards & Collectibles" 
-              className={styles.heroLogo} 
+            <Image
+              src="/assets/top-rated-logo.png"
+              alt="Top Rated Cards & Collectibles"
+              className={styles.heroLogo}
+              width={360}
+              height={120}
+              priority
+              sizes="(max-width: 600px) 60vw, 360px"
             />
           </div>
           <div className={styles.heroContent}>
             <h1 className={styles.title}>
-              The Ultimate <span className="text-gradient">Collection</span> Awaits.
+              The Ultimate <span className="text-gradient">Collection</span>{' '}
+              Awaits.
             </h1>
             <p className={styles.subtitle}>
-              Discover premium sealed products and rare singles. Your next big pull starts here.
+              Discover premium sealed products and rare singles. Your next big
+              pull starts here.
             </p>
             <div className={styles.heroActions}>
-              <Link href="/shop?category=sealed" className="btn-primary">
-                Shop Sealed
+              {/* Hero CTAs point to filters that actually have matches in the
+                  seeded data — the old ?category=sealed / ?category=singles
+                  returned an empty grid because no row uses those values. */}
+              <Link href="/shop?subCategory=NFL" className="btn-primary">
+                Shop Sports
               </Link>
-              <Link href="/shop?category=singles" className="btn-secondary">
-                Browse Singles
+              <Link href="/shop?subCategory=Pok%C3%A9mon" className="btn-secondary">
+                Browse TCG
               </Link>
             </div>
           </div>
         </section>
       </ScrollReveal>
 
-      {/* Featured Items */}
-      <ScrollReveal>
-        <section className={`container ${styles.featured}`}>
-          <div className={styles.sectionHeader}>
-            <h2>Featured Collection</h2>
-            <Link href="/shop" className={styles.viewAll}>View All</Link>
-          </div>
-          <div className={styles.grid}>
-            {topFeatured.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </section>
-      </ScrollReveal>
+      <ProductSection
+        title="Featured Collection"
+        cta={{ href: '/shop', label: 'View All' }}
+        products={topFeatured}
+      />
 
-      {/* New Releases */}
-      <ScrollReveal>
-        <section className={`container ${styles.featured}`}>
-          <div className={styles.sectionHeader}>
-            <h2>New Releases</h2>
-            <Link href="/shop?subCategory=All" className={styles.viewAll}>Shop New</Link>
-          </div>
-          <div className={styles.grid}>
-            {newReleases.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </section>
-      </ScrollReveal>
+      <ProductSection
+        title="New Releases"
+        cta={{ href: '/shop?subCategory=All', label: 'Shop New' }}
+        products={newReleases}
+      />
 
-      {/* Pre-Orders */}
-      <ScrollReveal>
-        <section className={`container ${styles.featured}`}>
-          <div className={styles.sectionHeader}>
-            <h2>Pre-Orders</h2>
-            <Link href="/shop?category=tcg" className={styles.viewAll}>Reserve Yours</Link>
-          </div>
-          <div className={styles.grid}>
-            {preOrders.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </section>
-      </ScrollReveal>
+      <ProductSection
+        title="Pre-Orders"
+        cta={{ href: '/shop?category=tcg', label: 'Reserve Yours' }}
+        products={preOrders}
+      />
 
       {/* News & Events */}
       <ScrollReveal>
         <section className={`container ${styles.featured}`}>
           <div className={styles.sectionHeader}>
-            <h2>News & Upcoming Events</h2>
+            <h2>News &amp; Upcoming Events</h2>
           </div>
           <div className={styles.eventsGrid}>
             <div className={`glass-panel ${styles.eventCard}`}>
               <h3>Friday Night Magic</h3>
               <p className={styles.eventDate}>Every Friday @ 7:00 PM</p>
-              <p>Join us for our weekly MTG Commander night. Prizes for top players!</p>
+              <p>
+                Join us for our weekly MTG Commander night. Prizes for top
+                players!
+              </p>
             </div>
             <div className={`glass-panel ${styles.eventCard}`}>
-              <h3>Pokémon Trade & Play</h3>
+              <h3>Pokémon Trade &amp; Play</h3>
               <p className={styles.eventDate}>Saturdays @ 12:00 PM</p>
-              <p>Bring your binders! A family-friendly event for trading and learning to play.</p>
+              <p>
+                Bring your binders! A family-friendly event for trading and
+                learning to play.
+              </p>
             </div>
             <div className={`glass-panel ${styles.eventCard}`}>
               <h3>New Set Release Party</h3>
               <p className={styles.eventDate}>Coming Next Month</p>
-              <p>Midnight release draft event. Pre-register to secure your spot!</p>
+              <p>
+                Midnight release draft event. Pre-register to secure your spot!
+              </p>
             </div>
           </div>
         </section>
@@ -117,18 +136,35 @@ export default async function Home() {
           <div className={`glass-panel ${styles.visitCard}`}>
             <div className={styles.visitContent}>
               <h2>Visit Our Store</h2>
-              <p>Come browse our collection in person, trade with the community, and grab your favorite packs.</p>
+              <p>
+                Come browse our collection in person, trade with the community,
+                and grab your favorite packs.
+              </p>
               <div className={styles.addressInfo}>
-                <strong>Top Rated Cards & Collectibles</strong><br/>
-                123 Collector&apos;s Avenue<br/>
+                <strong>Top Rated Cards &amp; Collectibles</strong>
+                <br />
+                123 Collector&apos;s Avenue
+                <br />
                 Hobby City, CA 90210
               </div>
-              <a href="https://maps.google.com" target="_blank" rel="noreferrer" className={`btn-primary ${styles.directionsBtn}`}>
+              <a
+                href="https://maps.google.com"
+                target="_blank"
+                rel="noreferrer"
+                className={`btn-primary ${styles.directionsBtn}`}
+              >
                 Get Directions
               </a>
             </div>
             <div className={styles.mapPlaceholder}>
-              <img src="/map.png" alt="Store Location Map" className={styles.mapImage} />
+              <Image
+                src="/map.png"
+                alt="Store Location Map"
+                className={styles.mapImage}
+                width={600}
+                height={400}
+                sizes="(max-width: 900px) 100vw, 600px"
+              />
             </div>
           </div>
         </section>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import styles from './Footer.module.css';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
@@ -9,10 +10,13 @@ export default function Footer() {
         
         <div className={styles.footerSection}>
           <div className={styles.brand}>
-            <img 
-              src="/assets/top-rated-logo.png" 
-              alt="Top Rated Logo" 
+            <Image
+              src="/assets/top-rated-logo.png"
+              alt="Top Rated Logo"
               className={styles.logo}
+              width={200}
+              height={60}
+              sizes="200px"
             />
           </div>
           <p className={styles.description}>

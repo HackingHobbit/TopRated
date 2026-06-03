@@ -148,6 +148,66 @@
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
+.quantitySelector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.quantityLabel {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.quantityControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  width: fit-content;
+}
+
+.quantityControls button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quantityControls button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.quantityControls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quantityControls span {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.quantityHint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .addToCartRow {
   display: flex;
   gap: 1rem;

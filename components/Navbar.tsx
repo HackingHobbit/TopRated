@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
 import { ShoppingCart, User, Search, Menu, X } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,14 +13,25 @@ export default function Navbar() {
   const { totalItems, toggleCart } = useCart();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
-  
+  const pathname = usePathname();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Close mobile menu when route changes
+  // Close mobile menu when the path changes. usePathname is a string that
+  // updates on every navigation, so React picks up the change and re-runs
+  // the effect — useRouter() returned a stable reference that never
+  // triggered the effect at all.
+  //
+  // We intentionally don't depend on useSearchParams() — adding that here
+  // would force every page (including the prerendered not-found) into a
+  // Suspense boundary for the Navbar, which is more cost than it's worth.
+  // Filter/sort UIs that only change the query string already close the
+  // menu via their own handlers.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMobileMenuOpen(false);
-  }, [router]);
+  }, [pathname]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +55,14 @@ export default function Navbar() {
     <header className={styles.header}>
       <div className={`container ${styles.navContainer}`}>
         <Link href="/" className={styles.brand}>
-          <img 
-            src="/assets/top-rated-logo.png" 
-            alt="Top Rated Logo" 
+          <Image
+            src="/assets/top-rated-logo.png"
+            alt="Top Rated Logo"
             className={styles.logo}
+            width={140}
+            height={44}
+            priority
+            sizes="140px"
           />
         </Link>
         
@@ -61,20 +77,31 @@ export default function Navbar() {
                 <div className={styles.dropdownColumn}>
                   <h4>Sports</h4>
                   <Link href="/shop?subCategory=NFL">NFL</Link>
-                  <Link href="/shop?subCategory=NBA">NBA</Link>
                   <Link href="/shop?subCategory=MLB">MLB</Link>
+                  <Link href="/shop?subCategory=NBA">NBA</Link>
+                  <Link href="/shop?subCategory=NHL">NHL</Link>
+                  <Link href="/shop?subCategory=Soccer">Soccer</Link>
+                  <Link href="/shop?subCategory=Combat">Combat (UFC / Boxing / WWE)</Link>
+                  <Link href="/shop?subCategory=Racing">Racing (NASCAR / F1)</Link>
+                  <Link href="/shop?subCategory=Golf">Golf</Link>
                 </div>
                 <div className={styles.dropdownColumn}>
-                  <h4>TCG</h4>
-                  <Link href="/shop?subCategory=Pokémon">Pokémon</Link>
-                  <Link href="/shop?subCategory=Marvel">Marvel</Link>
-                  <Link href="/shop?subCategory=One Piece">One Piece</Link>
+                  <h4>Trading Card Games</h4>
+                  <Link href="/shop?subCategory=TCG">All TCG</Link>
+                  <Link href="/shop?subCategory=TCG&amp;search=Pokemon">Pokémon</Link>
+                  <Link href="/shop?subCategory=TCG&amp;search=Magic">Magic: The Gathering</Link>
+                  <Link href="/shop?subCategory=TCG&amp;search=One+Piece">One Piece</Link>
+                  <Link href="/shop?subCategory=TCG&amp;search=Marvel">Marvel</Link>
+                  <Link href="/shop?subCategory=TCG&amp;search=Disney">Disney Lorcana</Link>
+                  <Link href="/shop?subCategory=TCG&amp;search=My+Little+Pony">My Little Pony</Link>
                 </div>
                 <div className={styles.dropdownColumn}>
-                  <h4>Other</h4>
-                  <Link href="/shop?subCategory=Memorabilia">Memorabilia</Link>
-                  <Link href="/shop?subCategory=Store Merch">Merchandise</Link>
-                  <Link href="/shop?subCategory=Accessories">Accessories</Link>
+                  <h4>Store &amp; Supplies</h4>
+                  <Link href="/shop?subCategory=Accessories">Accessories &amp; Supplies</Link>
+                  <Link href="/shop?subCategory=Signed Jersey">Signed Memorabilia</Link>
+                  <Link href="/shop?subCategory=Entertainment">Entertainment</Link>
+                  <Link href="/shop?subCategory=Beverages">Beverages</Link>
+                  <Link href="/shop">View Everything →</Link>
                 </div>
               </div>
             </div>
@@ -116,7 +143,14 @@ export default function Navbar() {
       {/* Mobile Menu Overlay */}
       <div className={`${styles.mobileMenuOverlay} ${isMobileMenuOpen ? styles.open : ''}`}>
         <div className={styles.mobileMenuHeader}>
-          <img src="/assets/top-rated-logo.png" alt="Logo" className={styles.mobileLogo} />
+          <Image
+            src="/assets/top-rated-logo.png"
+            alt="Logo"
+            className={styles.mobileLogo}
+            width={140}
+            height={44}
+            sizes="140px"
+          />
           <button className={styles.closeMenuBtn} onClick={() => setIsMobileMenuOpen(false)}>
             <X size={28} />
           </button>

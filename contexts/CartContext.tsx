@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useState, useMemo } from 'react';
-import { Product } from '@/lib/db';
+import React, { createContext, useContext, useMemo, useState } from 'react';
+import { Product } from '@/lib/types';
 import { useToast } from '@/contexts/ToastContext';
 
 export interface CartItem {
@@ -14,12 +14,14 @@ interface CartContextType {
   isCartOpen: boolean;
   totalItems: number;
   totalPrice: number;
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   toggleCart: () => void;
   clearCart: () => void;
 }
+
+const PER_ITEM_LIMIT = 3;
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -28,59 +30,77 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { addToast } = useToast();
 
-  const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
-  const totalPrice = useMemo(() => cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0), [cart]);
+  const totalItems = useMemo(
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart]
+  );
+  const totalPrice = useMemo(
+    () => cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+    [cart]
+  );
 
-  const addToCart = (product: Product) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.product.id === product.id);
-      
-      if (existingItem) {
-        // Enforce maximum 3 items per product rule
-        if (existingItem.quantity >= 3) {
-          addToast({
-            title: "Limit Reached",
-            message: "You can only add up to 3 of this item.",
-            type: "error"
-          });
-          return prevCart; // Do not increase further
-        }
-        addToast({
-          title: "Cart Updated",
-          message: `Increased quantity of ${product.name} to ${existingItem.quantity + 1}.`,
-          type: "success"
-        });
-        return prevCart.map((item) => 
-          item.product.id === product.id 
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        addToast({
-          title: "Added to Cart",
-          message: `${product.name} was added to your cart.`,
-          type: "success"
-        });
-        return [...prevCart, { product, quantity: 1 }];
-      }
-    });
-    
+  const addToCart = (product: Product, quantity: number = 1) => {
+    // IMPORTANT: read `cart` here (outside the updater) and compute the
+    // toast message + new cart state up front. React 19's concurrent
+    // rendering can call setState updater functions more than once, so
+    // they must be pure — no side effects like addToast() inside.
+    const requested = Math.max(1, Math.floor(quantity));
+    const existingItem = cart.find((item) => item.product.id === product.id);
+    const currentQty = existingItem?.quantity ?? 0;
+    const room = Math.max(0, PER_ITEM_LIMIT - currentQty);
+
+    if (room === 0) {
+      addToast({
+        title: 'Limit Reached',
+        message: 'You can only add up to 3 of this item.',
+        type: 'error',
+      });
+      return;
+    }
+
+    const toAdd = Math.min(requested, room);
+    const newQty = currentQty + toAdd;
+
+    if (existingItem) {
+      setCart((prev) =>
+        prev.map((item) =>
+          item.product.id === product.id ? { ...item, quantity: newQty } : item
+        )
+      );
+      addToast({
+        title: 'Cart Updated',
+        message:
+          toAdd === requested
+            ? `Increased quantity of ${product.name} to ${newQty}.`
+            : `Added ${toAdd} more (cart limit reached at ${newQty}).`,
+        type: toAdd === requested ? 'success' : 'info',
+      });
+    } else {
+      setCart((prev) => [...prev, { product, quantity: toAdd }]);
+      addToast({
+        title: 'Added to Cart',
+        message:
+          toAdd === requested
+            ? `${product.name} was added to your cart.`
+            : `Added ${toAdd} of ${product.name} (cart limit is 3).`,
+        type: 'success',
+      });
+    }
+
     // Auto-open cart when an item is added
     setIsCartOpen(true);
   };
 
   const removeFromCart = (productId: string) => {
-    setCart((prevCart) => {
-      const item = prevCart.find(i => i.product.id === productId);
-      if (item) {
-        addToast({
-          title: "Removed from Cart",
-          message: `${item.product.name} was removed.`,
-          type: "info"
-        });
-      }
-      return prevCart.filter((item) => item.product.id !== productId);
-    });
+    const item = cart.find((i) => i.product.id === productId);
+    setCart((prev) => prev.filter((i) => i.product.id !== productId));
+    if (item) {
+      addToast({
+        title: 'Removed from Cart',
+        message: `${item.product.name} was removed.`,
+        type: 'info',
+      });
+    }
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -88,12 +108,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeFromCart(productId);
       return;
     }
-    
-    // Enforce max 3 items
-    const limitedQuantity = Math.min(quantity, 3);
-    
-    setCart((prevCart) => 
-      prevCart.map((item) => 
+    const limitedQuantity = Math.min(quantity, PER_ITEM_LIMIT);
+    setCart((prev) =>
+      prev.map((item) =>
         item.product.id === productId
           ? { ...item, quantity: limitedQuantity }
           : item
@@ -101,22 +118,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const toggleCart = () => setIsCartOpen(!isCartOpen);
-  
+  const toggleCart = () => setIsCartOpen((open) => !open);
+
   const clearCart = () => setCart([]);
 
   return (
-    <CartContext.Provider 
-      value={{ 
-        cart, 
-        isCartOpen, 
-        totalItems, 
-        totalPrice, 
-        addToCart, 
-        removeFromCart, 
-        updateQuantity, 
+    <CartContext.Provider
+      value={{
+        cart,
+        isCartOpen,
+        totalItems,
+        totalPrice,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
         toggleCart,
-        clearCart
+        clearCart,
       }}
     >
       {children}

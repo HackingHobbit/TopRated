@@ -1,10 +1,12 @@
+/* TODO(perf): migrate to next/font/google in app/layout.tsx — see the
+   comment there for the snippet. That removes this render-blocking @import. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
   --bg-primary: #08090d;
   --bg-secondary: #12141d;
   --bg-elevated: #1a1d27;
-  
+
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;

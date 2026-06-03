@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,10 +65,13 @@ export default function CartDrawer() {
           ) : (
             cart.map((item) => (
               <div key={item.product.id} className={styles.cartItem}>
-                <img 
-                  src={item.product.image} 
-                  alt={item.product.name} 
-                  className={styles.itemImage} 
+                <Image
+                  src={item.product.image}
+                  alt={item.product.name}
+                  className={styles.itemImage}
+                  width={120}
+                  height={160}
+                  sizes="80px"
                 />
                 <div className={styles.itemDetails}>
                   <h3 className={styles.itemName}>{item.product.name}</h3>

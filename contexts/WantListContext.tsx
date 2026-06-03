@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useState, useMemo } from 'react';
-import { Product } from '@/lib/db';
+import React, { createContext, useContext, useMemo, useState } from 'react';
+import { Product } from '@/lib/types';
 import { useToast } from '@/contexts/ToastContext';
 
 interface WantListContextType {
@@ -11,7 +11,9 @@ interface WantListContextType {
   isFavorite: (productId: string) => boolean;
 }
 
-const WantListContext = createContext<WantListContextType | undefined>(undefined);
+const WantListContext = createContext<WantListContextType | undefined>(
+  undefined
+);
 
 export function WantListProvider({ children }: { children: React.ReactNode }) {
   const [wantList, setWantList] = useState<Product[]>([]);
@@ -19,33 +21,36 @@ export function WantListProvider({ children }: { children: React.ReactNode }) {
 
   const totalFavorites = useMemo(() => wantList.length, [wantList]);
 
-  const isFavorite = (productId: string) => {
-    return wantList.some(p => p.id === productId);
-  };
+  const isFavorite = (productId: string) =>
+    wantList.some((p) => p.id === productId);
 
   const toggleFavorite = (product: Product) => {
-    setWantList(prev => {
-      const exists = prev.some(p => p.id === product.id);
-      if (exists) {
-        addToast({
-          title: "Removed from Want List",
-          message: `${product.name} was removed from your favorites.`,
-          type: "info"
-        });
-        return prev.filter(p => p.id !== product.id);
-      } else {
-        addToast({
-          title: "Added to Want List",
-          message: `${product.name} was saved to your favorites.`,
-          type: "success"
-        });
-        return [...prev, product];
-      }
-    });
+    // Compute branch + toast intent OUTSIDE the setState updater so the
+    // updater stays pure. Calling addToast (a setState on ToastProvider)
+    // from inside another component's updater is the exact pattern React
+    // forbids in concurrent rendering.
+    const exists = wantList.some((p) => p.id === product.id);
+    if (exists) {
+      setWantList((prev) => prev.filter((p) => p.id !== product.id));
+      addToast({
+        title: 'Removed from Want List',
+        message: `${product.name} was removed from your favorites.`,
+        type: 'info',
+      });
+    } else {
+      setWantList((prev) => [...prev, product]);
+      addToast({
+        title: 'Added to Want List',
+        message: `${product.name} was saved to your favorites.`,
+        type: 'success',
+      });
+    }
   };
 
   return (
-    <WantListContext.Provider value={{ wantList, totalFavorites, toggleFavorite, isFavorite }}>
+    <WantListContext.Provider
+      value={{ wantList, totalFavorites, toggleFavorite, isFavorite }}
+    >
       {children}
     </WantListContext.Provider>
   );

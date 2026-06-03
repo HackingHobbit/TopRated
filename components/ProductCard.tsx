@@ -1,7 +1,8 @@
 "use client";
 
 import Link from 'next/link';
-import { Product } from '@/lib/db';
+import Image from 'next/image';
+import { Product } from '@/lib/types';
 import { useCart } from '@/contexts/CartContext';
 import { useWantList } from '@/contexts/WantListContext';
 import { Heart } from 'lucide-react';
@@ -36,10 +37,13 @@ export default function ProductCard({ product }: ProductCardProps) {
     <div className={styles.card}>
       <Link href={`/shop/${product.id}`} style={{ display: 'contents' }}>
         <div className={styles.imageContainer}>
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            className={styles.image} 
+          <Image
+            src={product.image}
+            alt={product.name}
+            className={styles.image}
+            width={600}
+            height={800}
+            sizes="(max-width: 600px) 50vw, (max-width: 1200px) 25vw, 300px"
           />
           
           <button 
@@ -51,9 +55,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           </button>
 
           <div className={styles.badges}>
-            <span className={`${styles.badge} ${styles.typeBadge}`}>
-              {product.isSealed ? 'Sealed' : 'Single'}
-            </span>
+            {/* Type badge only renders for actual sealed-card categories
+                — for accessories, beverages, memorabilia, entertainment
+                a "Sealed"/"Single" label would be misleading. */}
+            {(product.category === 'sports' || product.category === 'tcg') && (
+              <span className={`${styles.badge} ${styles.typeBadge}`}>
+                {product.isSealed ? 'Sealed' : 'Single'}
+              </span>
+            )}
+            {product.isOutOfStock && (
+              <span className={`${styles.badge} ${styles.saleBadge}`}>Out of Stock</span>
+            )}
             {product.isSale && <span className={`${styles.badge} ${styles.saleBadge}`}>Sale</span>}
             {product.isPreOrder && <span className={`${styles.badge} ${styles.preOrderBadge}`}>Pre-Order</span>}
             {product.isNewRelease && <span className={`${styles.badge} ${styles.newBadge}`}>New</span>}

@@ -11,17 +11,30 @@ import styles from './page.module.css';
 type Tab = 'orders' | 'wantlist' | 'settings';
 
 export default function Account() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAuthReady, signOut } = useAuth();
   const { wantList } = useWantList();
   const router = useRouter();
-  
+
   const [activeTab, setActiveTab] = useState<Tab>('orders');
 
+  // Only redirect once we've actually read the persisted auth state —
+  // otherwise the first render kicks logged-in users to /login.
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isAuthReady && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthReady, isAuthenticated, router]);
+
+  if (!isAuthReady) {
+    return (
+      <div
+        className="container"
+        style={{ padding: '4rem 0', textAlign: 'center' }}
+      >
+        Loading account…
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !user) return null;
 
@@ -61,8 +74,11 @@ export default function Account() {
           >
             Settings
           </button>
-          <button 
-            onClick={() => { logout(); router.push('/'); }} 
+          <button
+            onClick={async () => {
+              await signOut();
+              router.push('/');
+            }}
             className={`${styles.navLink} ${styles.logout}`}
           >
             Sign Out
@@ -110,7 +126,7 @@ export default function Account() {
             <h1 className={styles.pageTitle}>My Want List</h1>
             {wantList.length === 0 ? (
               <div className={`glass-panel`} style={{ padding: '4rem', textAlign: 'center' }}>
-                <p style={{ color: 'var(--text-muted)' }}>You haven't saved any items yet.</p>
+                <p style={{ color: 'var(--text-muted)' }}>You haven&apos;t saved any items yet.</p>
                 <Link href="/shop" className="btn-primary" style={{ marginTop: '1rem', display: 'inline-block' }}>
                   Browse Shop
                 </Link>

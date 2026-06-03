@@ -1,0 +1,165 @@
+'use server';
+
+// Server Actions for inventory mutations. Every function in this file is
+// exposed to the browser as a POST RPC endpoint, so each one MUST verify
+// the caller's permissions before touching data.
+//
+// During the Supabase transition this file supports two backends:
+//   - Supabase when NEXT_PUBLIC_SUPABASE_* + admin-role profile are set up
+//   - data/db.json fallback otherwise (admin gate is the assertAdmin stub)
+//
+// Once you've completed SUPABASE_SETUP.md, the JSON path becomes
+// vestigial and can be deleted. Keeping it during the transition lets
+// you exercise the admin UI without Supabase.
+
+import fs from 'fs/promises';
+import path from 'path';
+import { revalidatePath } from 'next/cache';
+import { getCurrentRole, getSupabaseServer } from './supabase/server';
+import { supabaseConfigured } from './supabase/env';
+import type { Product } from './types';
+
+const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
+
+interface DBShape {
+  products: Product[];
+}
+
+async function readJSON(): Promise<DBShape> {
+  const data = await fs.readFile(DB_PATH, 'utf-8');
+  return JSON.parse(data) as DBShape;
+}
+
+async function writeJSON(data: DBShape): Promise<void> {
+  await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
+}
+
+/**
+ * Refuse the action unless the caller is an admin. In Supabase mode this
+ * means a logged-in user whose `profiles.role = 'admin'`. In fallback
+ * mode (no Supabase configured) we log a loud warning and let the call
+ * through so the local demo keeps working — production deployments
+ * should never hit that branch.
+ */
+async function assertAdmin(): Promise<void> {
+  if (!supabaseConfigured()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'Refusing to run admin mutation: Supabase is not configured. ' +
+          'Set NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+          'and complete SUPABASE_SETUP.md before deploying.'
+      );
+    }
+    console.warn(
+      '[lib/actions] assertAdmin: Supabase not configured — allowing ' +
+        'mutation in dev. Wire this up before going to production.'
+    );
+    return;
+  }
+
+  const role = await getCurrentRole();
+  if (role !== 'admin') {
+    throw new Error('Not authorized — admin role required.');
+  }
+}
+
+// ----------------------------------------------------------------------
+// Server Actions
+// ----------------------------------------------------------------------
+
+export async function updateProduct(
+  id: string,
+  updates: Partial<Product>
+): Promise<Product> {
+  await assertAdmin();
+
+  if (supabaseConfigured()) {
+    const supabase = await getSupabaseServer();
+    if (!supabase) throw new Error('Supabase client unavailable.');
+
+    // The DB column names don't match the camelCase TS types — map them.
+    const dbUpdates: Record<string, unknown> = {};
+    const map: Record<keyof Product, string> = {
+      id: 'id',
+      name: 'name',
+      description: 'description',
+      price: 'price',
+      image: 'image',
+      category: 'category', // ignored: derived from category_id
+      subCategory: 'category_id',
+      isSealed: 'is_sealed',
+      isSale: 'is_sale',
+      isFeatured: 'is_featured',
+      isNewRelease: 'is_new_release',
+      isOutOfStock: 'is_out_of_stock',
+      isLimited: 'is_limited',
+      isPreOrder: 'is_pre_order',
+    };
+    for (const [k, v] of Object.entries(updates)) {
+      if (k === 'category') continue; // top-level is read-only here
+      const dbKey = map[k as keyof Product];
+      if (dbKey) dbUpdates[dbKey] = v;
+    }
+
+    const { data, error } = await supabase
+      .from('products')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select(
+        'id, name, description, price, image, category_id, sku, is_sealed, is_sale, is_featured, is_new_release, is_out_of_stock, is_limited, is_pre_order'
+      )
+      .single();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error('Product not found.');
+
+    revalidatePath('/admin/inventory');
+    revalidatePath('/shop');
+    revalidatePath(`/shop/${id}`);
+
+    // Return shape matching the legacy Product type. Top-level category is
+    // derived from category_id on read — see lib/db.ts for the lookup.
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      price: Number(data.price),
+      image: data.image,
+      category: '', // re-read from /admin/inventory query; not used by caller
+      subCategory: data.category_id ?? 'Accessories',
+      isSealed: data.is_sealed,
+      isSale: data.is_sale,
+      isFeatured: data.is_featured,
+      isNewRelease: data.is_new_release,
+      isOutOfStock: data.is_out_of_stock,
+      isLimited: data.is_limited,
+      isPreOrder: data.is_pre_order,
+    };
+  }
+
+  // ---- fallback: JSON file ----
+  const db = await readJSON();
+  const index = db.products.findIndex((p) => p.id === id);
+  if (index === -1) throw new Error('Product not found');
+
+  db.products[index] = { ...db.products[index], ...updates };
+  await writeJSON(db);
+  return db.products[index];
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  await assertAdmin();
+
+  if (supabaseConfigured()) {
+    const supabase = await getSupabaseServer();
+    if (!supabase) throw new Error('Supabase client unavailable.');
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    revalidatePath('/admin/inventory');
+    revalidatePath('/shop');
+    return;
+  }
+
+  const db = await readJSON();
+  db.products = db.products.filter((p) => p.id !== id);
+  await writeJSON(db);
+}

@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
-import { Product, updateProduct } from '@/lib/db';
+import type { Product } from '@/lib/types';
+import { updateProduct } from '@/lib/actions';
 import styles from './ProductEditModal.module.css';
 
 interface Props {
