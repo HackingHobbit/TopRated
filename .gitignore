@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code — local-only settings (shared launch.json is committed)
+.claude/settings.local.json
+
+# python build artifacts (scripts/ uses python for the Clover xlsx ingest)
+__pycache__/
+*.pyc
