@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Top Rated — Cards & Collectibles
 
-## Getting Started
+Premium ecommerce storefront for a family-owned card shop. Next.js 16 App Router, React 19, TypeScript, CSS Modules. Supabase + Clover are the planned backend; the demo runs on a JSON fallback until those are provisioned.
 
-First, run the development server:
+## Live site
+
+- **Production (Netlify):** https://topratedcc.netlify.app/
+- **GitHub:** https://github.com/HackingHobbit/TopRated
+
+Note: the Netlify site is configured through the Netlify dashboard, not a root `netlify.toml`. The only `netlify.toml` in the repo lives under `legacy-prototype/` and applies to the pre-Next.js static prototype — do not treat it as authoritative for the current app.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open <http://localhost:3000>. The app runs in **mock mode** when Supabase env vars are absent — any login works and the mock user has admin role so `/admin` is reachable.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To wire up the real backend, copy `.env.example` to `.env.local`, fill in the Supabase keys, and follow `SUPABASE_SETUP.md`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project docs
 
-## Learn More
+- `docs/SPECIFICATION.md` — product spec and business logic
+- `docs/FRONTEND_BACKEND_TODO.md` — phased roadmap
+- `AUDIT.md` — May 21 codebase audit (bugs, Next 16 fit, perf)
+- `PRODUCTION_AUDIT.md` — May 25 launch-readiness tiers
+- `SUPABASE_SETUP.md` — Supabase provisioning runbook
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run dev` — Next dev server (Turbopack, port 3000)
+- `npm run build` — production build
+- `npm run start` — run the production build
+- `npm run lint` — ESLint
+- `python3 scripts/ingest_inventory.py` — re-run the Clover xlsx → `data/db.json` ingest (idempotent)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stack
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 16.2.6 (App Router, Turbopack) · React 19.2 · TypeScript
+- CSS Modules with a dark/glassmorphism design system
+- Supabase (planned) for Postgres + Auth
+- Clover Commerce API (planned) for payments and POS sync
