@@ -26,9 +26,14 @@ The single most important usability fact: **the inventory page renders all 432 r
 
 ## TIER 1 — Broken or absent; blocks real admin use
 
-### 1.1 No active auth gate in the deployed site
-`app/admin/layout.tsx:22` only runs the role check `if (supabaseConfigured())`. The live Netlify site has **no Supabase env vars**, so the gate is skipped entirely and **`/admin` is open to the public internet right now.** Anyone with the URL can open the portal and toggle inventory flags. The mock `AuthContext` even hands out `role: 'admin'` to any login.
-**This is the same item as `PRODUCTION_AUDIT.md` §1.6, but worth restating as the top admin finding because the portal is live.** Until Supabase auth lands, either password-protect the route at the Netlify edge or don't share the URL.
+### 1.1 No active auth gate in the deployed site — ✅ FIXED (fail-safe), full fix pending Supabase env vars
+**Original finding:** `app/admin/layout.tsx` only ran the role check `if (supabaseConfigured())`. The live Netlify site has **no Supabase env vars**, so the gate was skipped and `/admin` rendered to anyone with the URL.
+
+**Severity correction:** the portal was *viewable* but not *mutable* on the live site. The inventory mutations (`updateProduct`/`deleteProduct`) call `assertAdmin()`, which **throws** in production when Supabase isn't configured (`lib/actions.ts:46`). So flag toggles already errored out on the live site — the earlier draft of this audit overstated it as "anyone can toggle inventory flags." What was actually exposed was read-only browsing of the admin shell (mostly hardcoded mock data, plus the product list that's already public on the storefront).
+
+**Fix applied (June 20):** the layout now fails safe — in production with Supabase unconfigured it calls `notFound()` instead of rendering open, so the live `/admin` returns a 404 until a real auth backend is wired up. Verified: a production build without env vars prerenders `/admin` as the not-found page; the dev mock demo is unaffected.
+
+**Remaining work (you):** set the Supabase env vars on Netlify so the route comes back online *gated* rather than 404 — see the new §7 in `SUPABASE_SETUP.md`. This is the same item as `PRODUCTION_AUDIT.md` §1.6.
 
 ### 1.2 Inventory: all 432 rows render at once — no pagination, search, sort, or filter
 `app/admin/inventory/page.tsx:7` calls `getProducts()` with no limit and passes the entire array to `InventoryTable`, which `.map()`s every row. Measured on the live DOM: **432 rows, ~2,167 buttons, body height 39,333px.** There is no search box, no column sort, no category filter, no pagination on this page (the two `<input>`s on the page are the global navbar search, which doesn't filter the table).

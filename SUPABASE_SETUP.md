@@ -119,6 +119,46 @@ Toggle it back **on** before going to production.
 
 ---
 
+## 7. Deploy to production (Netlify) — REQUIRED to close the admin hole
+
+Steps 1–6 only switch on Supabase **locally** (`.env.local` is never deployed).
+Until you do the following, the live site at
+[topratedcc.netlify.app](https://topratedcc.netlify.app) keeps running in mock
+mode. The admin route fails safe in that state — production builds without
+Supabase env vars serve `/admin` as a **404** rather than rendering it open
+(see `app/admin/layout.tsx`) — but auth, real data, and a reachable admin
+portal don't come online until the env vars are set on Netlify.
+
+1. **Add the env vars in Netlify.** Site → **Site configuration → Environment
+   variables** → add:
+   - `NEXT_PUBLIC_SUPABASE_URL` = `https://YOUR_PROJECT.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `eyJ...your_anon_key...`
+
+   (The `anon` key is safe to expose to the browser. **Do not** add the
+   `service_role` key to Netlify — it's only used by the local
+   `migrate_to_supabase.py` push in step 4.)
+
+2. **Trigger a redeploy.** Netlify rebuilds on the next push, or use
+   **Deploys → Trigger deploy → Deploy site**. After it builds,
+   `supabaseConfigured()` returns true in production, so `/admin` becomes a
+   live, gated route instead of a 404.
+
+3. **Point Supabase Auth at the production domain.** Dashboard →
+   **Authentication → URL Configuration**:
+   - **Site URL** = `https://topratedcc.netlify.app`
+   - **Redirect URLs** — add `https://topratedcc.netlify.app/auth/callback`
+     (keep `http://localhost:3000/auth/callback` too for local dev).
+
+   Without this, email-verification and OAuth links bounce to the wrong host
+   and the `/auth/callback` exchange 404s.
+
+4. **Verify the gate is live.** In a private/incognito window, open
+   `https://topratedcc.netlify.app/admin`. You should be redirected to
+   `/login?redirect=/admin` — **not** see the dashboard. Sign in as your admin
+   user (step 5) and confirm you land back on `/admin`.
+
+---
+
 ## What's wired up vs what's still TODO
 
 After the steps above:
@@ -126,7 +166,9 @@ After the steps above:
 ✅ Sign-in / sign-up against Supabase
 ✅ Email verification flow
 ✅ Session cookies refreshed automatically on each navigation (`proxy.ts`)
-✅ Admin route gated server-side
+✅ Admin route gated server-side (and fails safe to a 404 in production when
+   Supabase isn't configured — it is never served open)
+✅ Admin mutations refuse to run without an admin session (`assertAdmin`)
 ✅ Inventory reads from Postgres
 ✅ Admin inventory edits write to Postgres
 ✅ RLS policies enforce the auth boundary at the database level
