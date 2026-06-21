@@ -30,7 +30,7 @@ This is the single source of truth for finishing the site: what's real vs. fille
 - 376 of 432 product images are still `loremflickr` placeholders.
 - Cart and want-list evaporate on refresh.
 - **Custom Inventory shows 50 non-card items** (beverages/accessories from the import) because "single" is currently defined as `is_sealed=false` — see the **OPEN DECISION in §5** (deferred).
-- **Mobile looks broken** — the site is desktop-first; shop filters bury the products and the admin sidebar/tables don't fit a phone. See §3 "Mobile responsiveness" (high priority).
+- **Mobile** — the two worst layouts (shop filters, admin sidebar) are now fixed; checkout/account/PDP already stacked. Remaining is polish (table reflow, cart drawer, tap targets). See §3 "Mobile responsiveness" (Phase M, in progress).
 
 The visual quality is high, which is exactly why the remaining filler is dangerous: it looks done. Section 1 inventories every place that is *not*.
 
@@ -86,13 +86,13 @@ Status legend: ✅ fixed · ⬜ still filler. Severity: 🔴 customer-visible/la
 
 ## 3. User experience
 
-### 🔴 Mobile responsiveness — currently broken (high priority)
-The site was built desktop-first and looks bad on phones across the board. Verified at a 375px viewport:
-- **Shop** (`app/shop/ShopClient.tsx`, `shop/page.module.css`) — the filter sidebar stacks **full-width above** the product grid, so on a phone you scroll past the entire filter panel (search, sort, availability, every category) before seeing a single product. **Fix:** collapse filters behind a "Filters" button → drawer/accordion on mobile; products first.
-- **Admin** (`app/admin/page.module.css` `.adminContainer`) — `display:flex; flex-direction:row` with a fixed **250px sidebar and no mobile breakpoint**, so on a phone the sidebar crowds the content and the wide multi-column tables (Inventory's 9 columns, Users, Customers, Orders) overflow. **Fix:** stack/drawer the admin sidebar under a breakpoint; make tables scroll in a contained wrapper or reflow to card rows on mobile.
-- **Data tables generally** — `InventoryTable`, Users, Customers, Orders have no mobile treatment (no horizontal-scroll container or card fallback).
-- **Hero / spacing** — hero subtitle can clip on small screens; needs a spacing pass.
-- **No global mobile QA** — every route (home, shop, PDP, cart drawer, checkout, account, all admin pages) needs a pass at 360–414px: add breakpoints, convert side-by-side layouts to mobile patterns, verify tap-target sizes. *(Ironically, the new singles "Add" form is the one screen designed mobile-first.)*
+### Mobile responsiveness — IN PROGRESS (Phase M)
+The site was built desktop-first. The two worst offenders are fixed (June 21); polish remains. Verified at 375px.
+- ✅ **Shop** (`ShopClient.tsx`, `shop/page.module.css`) — filters now collapse behind a "Filters & Sort" toggle on mobile; products show first. Desktop unchanged.
+- ✅ **Admin** (`app/admin/page.module.css`) — added a ≤768px breakpoint: the sidebar stacks full-width as a wrapped top nav, content gets full width, tables scroll in their existing `overflow-x` wrappers.
+- ✅ **Checkout & account** — already had breakpoints (900px / 768px); they stack correctly. No change needed.
+- ✅ **PDP** — stacks with no horizontal overflow.
+- ⬜ **Remaining polish:** data tables still horizontal-scroll on mobile (acceptable, but card-row reflow would be nicer); cart drawer width on small screens; tap-target sizes; minor hero/PDP-title left-padding on the smallest widths; full re-check of every route at 360–414px.
 
 ### Other UX
 - **No route-level loading or error UI** — only `/shop` has a Suspense boundary. A thrown error anywhere falls to the framework default. **Fix:** add `app/loading.tsx`, `app/error.tsx`, `app/global-error.tsx`, and per-route skeletons.
@@ -264,8 +264,8 @@ Add/delete/edit-all-fields, quantity, **image upload**, optimistic toggles, serv
 ### Phase D — Singles inventory + photo capture (per §5) — ✅ DONE (June 21)
 Migration `0002` (single_details, product_images, Storage bucket + RLS) applied; `<PhotoUploader>` with mobile rear-camera capture; `createSingle`/`updateSingle`/`deleteSingle`; `/admin/singles` category-grouped CRUD. Live-verified (create, photo round-trip, delete). **Remaining follow-ups:** (a) **resolve the OPEN DECISION in §5** — the "single = `is_sealed=false`" definition currently surfaces 50 non-card items (beverages/accessories) from the import; (b) surface the extra fields (grade/condition/cert) and the multi-photo gallery on the *storefront* single PDP.
 
-### Phase M — Mobile responsiveness pass (high priority, cross-cutting)
-Per §3 "Mobile responsiveness." The site is desktop-first and looks broken on phones. Audit every route at 360–414px and fix: (1) shop filters → a "Filters" drawer/accordion with products shown first; (2) admin layout → stacked/drawer sidebar under a breakpoint; (3) wide data tables → horizontal-scroll containers or card-row reflow; (4) hero/spacing pass; (5) tap-target sizes. This is high priority for an ecommerce storefront — most card-shop traffic is mobile — and is independent of the payment work, so it can run in parallel with Phase A.
+### Phase M — Mobile responsiveness pass (high priority, cross-cutting) — IN PROGRESS
+Per §3 "Mobile responsiveness." ✅ Done (June 21): shop filters collapse to a toggle (products first); admin layout stacks under a ≤768px breakpoint; confirmed checkout/account/PDP already stack. ⬜ Remaining: data-table card-row reflow on mobile, cart-drawer width, tap-target sizes, hero/PDP-title spacing nits, and a full re-check of every route at 360–414px. Independent of the payment work — can continue in parallel with Phase A.
 
 ### Phase E — Hardening & polish
 - Cart/want-list persistence; `/shop` pagination; debounced search.
