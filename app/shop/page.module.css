@@ -38,6 +38,44 @@
   top: 100px;
 }
 
+/* Filters collapse behind a toggle on mobile so products come first.
+   The toggle is hidden on desktop; the panel is always shown there. */
+.filtersToggle {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    flex: initial;
+    width: 100%;
+    position: static;
+    top: auto;
+    padding: 1rem;
+  }
+  .filtersToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.85rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .filterPanel {
+    display: none;
+    margin-top: 1rem;
+  }
+  .filterPanelOpen {
+    display: block;
+  }
+}
+
 .sidebar h3 {
   margin-bottom: 1.5rem;
   font-size: 1.25rem;

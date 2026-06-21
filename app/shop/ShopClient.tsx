@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { SlidersHorizontal } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/lib/types';
 import styles from './page.module.css';
@@ -15,6 +16,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   const urlSearch = searchParams.get('search') || '';
 
   const [searchQuery, setSearchQuery] = useState(urlSearch);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Sync the local search input with ?search= when the URL changes (e.g.
   // navigating between dropdown items like ?search=Pokemon and ?search=Magic).
@@ -77,9 +79,22 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   return (
     <div className={styles.shopLayout}>
       <aside className={`glass-panel ${styles.sidebar}`}>
-        <h3>Filters</h3>
-        
-        <div className={styles.searchContainer}>
+        <button
+          type="button"
+          className={styles.filtersToggle}
+          onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+        >
+          <SlidersHorizontal size={18} />
+          {filtersOpen ? 'Hide Filters' : 'Filters & Sort'}
+        </button>
+
+        <div
+          className={`${styles.filterPanel} ${filtersOpen ? styles.filterPanelOpen : ''}`}
+        >
+          <h3>Filters</h3>
+
+          <div className={styles.searchContainer}>
           <input 
             type="text" 
             placeholder="Search products..." 
@@ -142,18 +157,19 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
           </div>
         </div>
 
-        <div className={styles.filterSection}>
-          <h4>Subcategory</h4>
-          <div className={styles.filterList}>
-            {subCategories.map(sub => (
-              <button 
-                key={sub}
-                className={`${styles.filterBtn} ${currentSubCategory === sub ? styles.activeFilter : ''}`}
-                onClick={() => handleSubCategoryChange(sub)}
-              >
-                {sub}
-              </button>
-            ))}
+          <div className={styles.filterSection}>
+            <h4>Subcategory</h4>
+            <div className={styles.filterList}>
+              {subCategories.map(sub => (
+                <button
+                  key={sub}
+                  className={`${styles.filterBtn} ${currentSubCategory === sub ? styles.activeFilter : ''}`}
+                  onClick={() => handleSubCategoryChange(sub)}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </aside>
