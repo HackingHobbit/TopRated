@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Netlify CLI build output (edge/server functions, bundled vendor code).
+    // Generated, minified, not source — never lint it.
+    ".netlify/**",
   ]),
 ]);
 
