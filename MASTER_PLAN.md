@@ -213,25 +213,25 @@ A `/admin/users` section (or the upgraded `/admin/customers`): searchable user t
 
 Each phase ends in something testable and deployable. Phases A–C are launch-blocking; D is the priority feature; E is post-launch hardening.
 
-> **Progress (June 21, 2026):** ✅ **Phase 0** done · ✅ **Phase D** (singles + photos) done · ✅ **Phase B item 3** (user & staff admin) done. Remaining priority order below: **Phase A** (transact) → rest of **Phase B** → **Phase C** → **Phase E**.
+> **Progress (June 21, 2026):** ✅ **Phase 0** · ✅ **Phase D** (singles + photos) · ✅ **Phase B-3** (user/staff admin) · ✅ **Phase A-1** (order persistence) · ✅ **Phase B-5** (stock guard) · ✅ **Phase B-6** (real Customers page). **Next:** Phase A-2/3/4 (Clover payments, tax, email — payments/email need external accounts), A-5 (account order history, now unblocked), then Phase C and E.
 
 ### Phase 0 — Immediate security fix — ✅ DONE (June 21)
 Migration `0002` applied; the `profiles` guard trigger blocks non-admin role/loyalty changes. Live-verified.
 
-### Phase A — Make it transact (highest priority — NEXT)
-1. **Order persistence** — on checkout submit, write `orders` + `order_items`, decrement `products.quantity`, generate a real order number, store shipping snapshot. (Tables exist.)
-2. **Clover payment** — hosted iframe tokenization → charge → webhook for `payment.success/failed`; idempotency keys; `/checkout/canceled` route. Card data never touches the server.
-3. **Tax** — server-side calc from shipping address (the Clover export carries a 9.25% Windsor rate); show + persist it.
+### Phase A — Make it transact (highest priority — IN PROGRESS)
+1. ✅ **DONE (June 21)** — **Order persistence**: checkout calls `placeOrder` (`lib/orderActions.ts`), which re-prices from the DB server-side, writes `orders` + `order_items` + `inventory_transactions`, links the customer when logged in, decrements stock (floored), and returns a real order number. Verified end-to-end (order TR-…, correct totals, line-item DB prices). *(Stock is NOT auto-flipped to out-of-stock yet — seeded quantities are unreliable; that waits for real quantities. Orders are intentionally not hard-deletable — no RLS delete policy; cancel/refund via status instead.)*
+2. **Clover payment** — hosted iframe tokenization → charge → webhook for `payment.success/failed`; idempotency keys; `/checkout/canceled` route. Card data never touches the server. *(NEXT external dep: needs a Clover account + keys. Orders currently persist as status `pending`.)*
+3. **Tax** — server-side calc from shipping address (the Clover export carries a 9.25% Windsor rate); show + persist it. *(currently stored as 0.)*
 4. **Transactional email** — Resend/Postmark SMTP; order confirmation + signup verification (also fixes the standing email radar item).
-5. **Account order history** — replace the hardcoded card with a real query of the user's `orders`.
+5. **Account order history** — replace the hardcoded card with a real query of the user's `orders`. *(unblocked now that orders persist.)*
 
 ### Phase B — Truth in the admin & account UI + user administration
 1. Wire **admin dashboard** metrics + "Recent Activity" to real aggregate queries.
 2. Wire **admin Orders** to `orders` (+ a real fulfillment state machine: Pending→Processing→Shipped→Delivered→Returned, writing to `inventory_transactions`). *(depends on Phase A order data)*
 3. ✅ **DONE** — **User & staff administration** (per §6): `/admin/users` with list/search, edit, role management (self-lockout + last-admin guards), create/delete accounts via service-role, password reset. *(Audit log is the one nice-to-have not yet added.)*
 4. **Account**: real loyalty tier from points; build (or hide) Settings.
-5. Fix **PDP stock status** to reflect `isOutOfStock`; guard OOS add-to-cart everywhere. *(unblocked now — small, no dependencies)*
-6. Wire **admin Customers** to real `profiles` data *(unblocked now — user data already exists)*.
+5. ✅ **DONE (June 21)** — **PDP stock status** reflects `isOutOfStock`; out-of-stock add-to-cart is blocked on the PDP, the product card, and in `CartContext` (defense in depth). Verified on a real OOS product.
+6. ✅ **DONE (June 21)** — **admin Customers** wired to real `profiles` + order aggregates (count + lifetime spend + tier). Verified.
 
 ### Phase C — Admin product CRUD (per §4) — partially unlocked
 Add/delete/edit-all-fields, quantity, **image upload**, optimistic toggles, server-side paginated/searchable table — for the *main/sealed* inventory. The singles flow already does all of this; reuse `<PhotoUploader>`, `createSingle`/`deleteSingle` patterns, and the `product-images` bucket to extend it to sealed products.
