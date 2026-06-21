@@ -7,8 +7,10 @@ import styles from './page.module.css';
 const LINKS = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/inventory', label: 'Inventory' },
+  { href: '/admin/singles', label: 'Custom Inventory' },
   { href: '/admin/orders', label: 'Orders' },
   { href: '/admin/customers', label: 'Customers' },
+  { href: '/admin/users', label: 'Users' },
 ];
 
 export default function AdminNav() {

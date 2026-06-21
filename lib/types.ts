@@ -18,3 +18,46 @@ export interface Product {
   isLimited: boolean;
   isPreOrder: boolean;
 }
+
+// One uploaded photo associated with a product (front/back/angles). The
+// product's `image` field mirrors the primary one for list/grid thumbnails.
+export interface ProductImage {
+  id: string;
+  productId: string;
+  url: string;
+  position: number;
+  isPrimary: boolean;
+}
+
+// Per-card attributes for an individual ("single") card. Sealed products
+// have no SingleDetail. Mirrors public.single_details.
+export interface SingleDetail {
+  productId: string;
+  subject: string;
+  cardSet: string;
+  year: number | null;
+  cardNumber: string;
+  condition: string;
+  isGraded: boolean;
+  grader: string;
+  grade: string;
+  certNumber: string;
+}
+
+// A single uploaded image as tracked client-side during the add/edit flow,
+// before it's persisted into product_images. `path` is the Storage object
+// path (used for removal); `url` is the public URL.
+export interface UploadedImage {
+  url: string;
+  path: string;
+}
+
+// A user row for the admin user-management table (profiles + auth metadata).
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'customer';
+  loyaltyPoints: number;
+  createdAt: string;
+}

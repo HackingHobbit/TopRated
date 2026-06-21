@@ -15,9 +15,26 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getSupabaseServer } from './supabase/server';
 import { supabaseConfigured } from './supabase/env';
-import type { Product } from './types';
+import type {
+  Product,
+  AdminUser,
+  SingleDetail,
+  ProductImage,
+} from './types';
 
 export type { Product };
+
+export interface CategoryOption {
+  id: string;
+  name: string;
+  topLevel: string;
+}
+
+export interface SingleWithDetails {
+  product: Product;
+  detail: SingleDetail | null;
+  images: ProductImage[];
+}
 
 const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
 
@@ -158,3 +175,120 @@ function applyFilters(
     return true;
   });
 }
+
+// ----------------------------------------------------------------------
+// Admin reads (Supabase only; empty/null in JSON fallback mode)
+// ----------------------------------------------------------------------
+
+/** All user profiles, for the admin user-management table. Admin RLS lets a
+ *  logged-in admin read every row. */
+export const getAllUsers = cache(async (): Promise<AdminUser[]> => {
+  if (!supabaseConfigured()) return [];
+  const supabase = await getSupabaseServer();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email, name, role, loyalty_points, created_at')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('[lib/db] getAllUsers:', error.message);
+    return [];
+  }
+  return (data ?? []).map((r: {
+    id: string;
+    email: string;
+    name: string | null;
+    role: string;
+    loyalty_points: number | null;
+    created_at: string;
+  }) => ({
+    id: r.id,
+    email: r.email,
+    name: r.name ?? '',
+    role: r.role === 'admin' ? 'admin' : 'customer',
+    loyaltyPoints: r.loyalty_points ?? 0,
+    createdAt: r.created_at,
+  }));
+});
+
+/** Category options (subcategory id + display + top level) for pickers. */
+export const getCategories = cache(async (): Promise<CategoryOption[]> => {
+  if (!supabaseConfigured()) return [];
+  const supabase = await getSupabaseServer();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('categories')
+    .select('id, name, top_level')
+    .order('top_level', { ascending: true })
+    .order('name', { ascending: true });
+  return (data ?? []).map(
+    (c: { id: string; name: string; top_level: string }) => ({
+      id: c.id,
+      name: c.name,
+      topLevel: c.top_level,
+    })
+  );
+});
+
+/** All single cards (products with is_sealed=false) for the admin list. */
+export const getSingles = cache(async (): Promise<Product[]> => {
+  const all = await getProducts();
+  return all.filter((p) => !p.isSealed);
+});
+
+/** One single with its detail row and ordered images, for the edit screen. */
+export const getSingleWithDetails = cache(
+  async (id: string): Promise<SingleWithDetails | null> => {
+    const product = await getProductById(id);
+    if (!product) return null;
+    if (!supabaseConfigured()) return { product, detail: null, images: [] };
+    const supabase = await getSupabaseServer();
+    if (!supabase) return { product, detail: null, images: [] };
+
+    const [{ data: d }, { data: imgs }] = await Promise.all([
+      supabase
+        .from('single_details')
+        .select(
+          'subject, card_set, year, card_number, condition, is_graded, grader, grade, cert_number'
+        )
+        .eq('product_id', id)
+        .maybeSingle(),
+      supabase
+        .from('product_images')
+        .select('id, product_id, url, position, is_primary')
+        .eq('product_id', id)
+        .order('position', { ascending: true }),
+    ]);
+
+    const detail: SingleDetail | null = d
+      ? {
+          productId: id,
+          subject: d.subject ?? '',
+          cardSet: d.card_set ?? '',
+          year: d.year ?? null,
+          cardNumber: d.card_number ?? '',
+          condition: d.condition ?? '',
+          isGraded: d.is_graded ?? false,
+          grader: d.grader ?? '',
+          grade: d.grade ?? '',
+          certNumber: d.cert_number ?? '',
+        }
+      : null;
+
+    const images: ProductImage[] = (imgs ?? []).map((r: {
+      id: string;
+      product_id: string;
+      url: string;
+      position: number;
+      is_primary: boolean;
+    }) => ({
+      id: r.id,
+      productId: r.product_id,
+      url: r.url,
+      position: r.position,
+      isPrimary: r.is_primary,
+    }));
+
+    return { product, detail, images };
+  }
+);

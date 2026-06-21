@@ -15,8 +15,9 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
-import { getCurrentRole, getSupabaseServer } from './supabase/server';
+import { getSupabaseServer } from './supabase/server';
 import { supabaseConfigured } from './supabase/env';
+import { assertAdmin } from './auth-guard';
 import type { Product } from './types';
 
 const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
@@ -32,35 +33,6 @@ async function readJSON(): Promise<DBShape> {
 
 async function writeJSON(data: DBShape): Promise<void> {
   await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
-}
-
-/**
- * Refuse the action unless the caller is an admin. In Supabase mode this
- * means a logged-in user whose `profiles.role = 'admin'`. In fallback
- * mode (no Supabase configured) we log a loud warning and let the call
- * through so the local demo keeps working — production deployments
- * should never hit that branch.
- */
-async function assertAdmin(): Promise<void> {
-  if (!supabaseConfigured()) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(
-        'Refusing to run admin mutation: Supabase is not configured. ' +
-          'Set NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
-          'and complete SUPABASE_SETUP.md before deploying.'
-      );
-    }
-    console.warn(
-      '[lib/actions] assertAdmin: Supabase not configured — allowing ' +
-        'mutation in dev. Wire this up before going to production.'
-    );
-    return;
-  }
-
-  const role = await getCurrentRole();
-  if (role !== 'admin') {
-    throw new Error('Not authorized — admin role required.');
-  }
 }
 
 // ----------------------------------------------------------------------
