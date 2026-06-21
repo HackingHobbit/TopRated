@@ -67,7 +67,7 @@ Every row below is a literal placeholder in the code, with the file to fix. Seve
 ### Cart & checkout
 - **Cart and want-list are in-memory only** — `CartContext`/`WantListContext` use `useState` with no persistence (`contexts/CartContext.tsx:29`). A refresh empties the cart mid-shop. **Fix:** localStorage for guests; `public.carts`/`public.want_lists` (tables already exist in the schema) for logged-in users.
 - **3-item limit & free-shipping bar work well** — keep.
-- **Checkout is a dead end** — collects shipping + (discarded) card data and fakes success. This is the single biggest gap (see §6 Phase A).
+- **Checkout is a dead end** — collects shipping + (discarded) card data and fakes success. This is the single biggest gap (see §7 Phase A).
 
 ### Admin
 - **No pagination/search on the 432-row inventory table** — the whole list renders and ships to the client (`app/admin/inventory/page.tsx:7`, `InventoryTable.tsx`). **Fix:** server-side paginated/searchable table.
@@ -154,13 +154,62 @@ Plus a **Supabase Storage bucket** `product-images` with RLS: public read, admin
 ### Storefront surfacing
 - A **Singles** entry in the shop taxonomy (filter `isSealed=false`), and singles PDPs that show the extra fields (grade, cert, condition) and the multi-photo gallery (front/back).
 
-This feature spans schema + storage + a new server action + a new admin route + a reusable `<PhotoUploader>` component. It's the largest single workstream and is scheduled as its own phase (§6 Phase D).
+This feature spans schema + storage + a new server action + a new admin route + a reusable `<PhotoUploader>` component. It's the largest single workstream and is scheduled as its own phase (§7 Phase D).
 
 ---
 
-## 6. The master plan — phased execution
+## 6. User & staff administration (CRUD + roles)
+
+The plan previously only covered *reading* customers (Phase B wires the Customers page to real data). You also need to **administer** both customers and staff. This is a distinct workstream.
+
+### 🔴 URGENT security fix — live privilege-escalation hole
+The RLS policy `"profiles self update"` (`supabase/migrations/0001_init.sql:269`) is:
+```sql
+create policy "profiles self update" on public.profiles for update using (id = auth.uid());
+```
+With no `WITH CHECK` and no column restriction, an authenticated user can update **any column of their own row — including `role`**. A customer can open the browser console and run `supabase.from('profiles').update({ role: 'admin' }).eq('id', <their id>)`, reload, and reach `/admin`. This is live on the production database.
+**Fix (do this before anything else here):** stop non-admins from changing privileged columns. Cleanest is a `BEFORE UPDATE` trigger that rejects a `role`/`loyalty_points` change unless `public.is_admin()`:
+```sql
+create or replace function public.guard_profile_privileged_cols()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (new.role <> old.role or new.loyalty_points <> old.loyalty_points)
+     and not public.is_admin() then
+    raise exception 'Not authorized to change role or loyalty_points';
+  end if;
+  return new;
+end; $$;
+drop trigger if exists profiles_guard_privileged on public.profiles;
+create trigger profiles_guard_privileged before update on public.profiles
+  for each row execute function public.guard_profile_privileged_cols();
+```
+
+### What "manage users" needs
+- **List & search** all users (customers + staff) from `profiles` (admins already have RLS read access).
+- **View** a user: profile, order history, loyalty points, addresses.
+- **Edit** profile fields (name, loyalty points, notes).
+- **Role management** — promote/demote between `customer` and `admin`, with guardrails: an admin can't strip their *own* admin (self-lockout), and the system must never drop to **zero** admins.
+- **Create staff/admin accounts** directly from the panel.
+- **Deactivate / ban / delete** accounts.
+- **Trigger password-reset** emails.
+- **Audit log** — who changed whose role/account, and when.
+
+### Technical reality (important)
+- Reading profiles and changing `role` work with the admin's normal cookie session via the `profiles admin update` RLS policy — once the trigger above is in place, only admins can do it.
+- **Creating, deleting, or banning login accounts requires the Supabase Admin API** (`auth.admin.createUser` / `deleteUser` / `updateUserById`), which needs the **service_role / secret key** and must run **server-side only** — a dedicated service-role client, never shipped to the browser, called from `assertAdmin`-gated server actions. This is net-new infra: today the secret key isn't used by the app at all.
+- The schema's `role` CHECK allows only `customer`/`admin`. If you want tiered staff (e.g. a limited `staff` role that can manage inventory but not users), widen the CHECK and the `is_admin()`/gate logic.
+
+### Build (folds into Phase B, after the urgent trigger fix)
+A `/admin/users` section (or the upgraded `/admin/customers`): searchable user table → detail view → edit / change-role / deactivate / reset-password, plus an "Add staff member" flow. Backed by server actions — role/profile edits via the session client; account create/delete/ban via the server-only service-role client; every action gated and audit-logged.
+
+---
+
+## 7. The master plan — phased execution
 
 Each phase ends in something testable and deployable. Phases A–C are launch-blocking; D is the priority feature; E is post-launch hardening.
+
+### Phase 0 — Immediate security fix (do now, minutes)
+Apply the `profiles` privileged-column trigger from §6 to close the live role-escalation hole. One small migration; no app code change. Everything else can wait behind this.
 
 ### Phase A — Make it transact (highest priority)
 1. **Order persistence** — on checkout submit, write `orders` + `order_items`, decrement `products.quantity`, generate a real order number, store shipping snapshot. (Tables exist.)
@@ -169,10 +218,10 @@ Each phase ends in something testable and deployable. Phases A–C are launch-bl
 4. **Transactional email** — Resend/Postmark SMTP; order confirmation + signup verification (also fixes the standing email radar item).
 5. **Account order history** — replace the hardcoded card with a real query of the user's `orders`.
 
-### Phase B — Truth in the admin & account UI
+### Phase B — Truth in the admin & account UI + user administration
 1. Wire **admin dashboard** metrics + "Recent Activity" to real aggregate queries.
 2. Wire **admin Orders** to `orders` (+ a real fulfillment state machine: Pending→Processing→Shipped→Delivered→Returned, writing to `inventory_transactions`).
-3. Wire **admin Customers** to `profiles` (+ real "View Profile").
+3. **User & staff administration** (per §6) — `/admin/users`: list/search, view, edit, **role management** (promote/demote with self-lockout + last-admin guards), **create staff**, deactivate/ban/delete (server-only service-role client), password-reset, audit log. (Phase 0 trigger is a prerequisite.)
 4. **Account**: real loyalty tier from points; build (or hide) Settings.
 5. Fix **PDP stock status** to reflect `isOutOfStock`; guard OOS add-to-cart everywhere.
 
@@ -193,7 +242,7 @@ Migration `0002`, Storage bucket + policies, `<PhotoUploader>` (with mobile came
 
 ---
 
-## 7. Testing & QA strategy
+## 8. Testing & QA strategy
 
 - **Unit** (Vitest): `lib/` data layer, `contexts/` (cart math, limits), tax calc, server actions' auth gating.
 - **Integration**: order-creation pipeline (payment success → order rows → stock decrement → email) against a Supabase test project; image upload → Storage → `product_images`.
@@ -202,15 +251,16 @@ Migration `0002`, Storage bucket + policies, `<PhotoUploader>` (with mobile came
 - **CI** (GitHub Actions): `eslint` + `tsc --noEmit` + `vitest` + `playwright` on every PR; Netlify deploy previews; required checks before merge to `main`.
 - **Security**: every server action validates input (zod) and calls `assertAdmin` where needed; RLS verified per-table; CSP + security headers.
 
-## 8. Definition of "truly done"
+## 9. Definition of "truly done"
 
 The site is complete when:
 1. A customer can browse (paginated), add to a cart that survives refresh, check out, **pay**, and receive an emailed confirmation — and the order appears in their account and the admin.
 2. Stock is real: OOS items can't be bought; selling decrements quantity.
 3. An admin can add, edit (every field), photograph, and delete products from a phone, including a dedicated singles flow with rear-camera capture.
-4. No hardcoded/filler data remains in any customer- or admin-facing surface (§1 fully cleared).
-5. Legal/content pages exist; SEO basics present; a11y passes; errors are tracked.
-6. Tests cover the critical paths and run in CI.
+4. An admin can manage users and staff — search, edit, change roles (safely), create staff, and deactivate accounts — and **no user can escalate their own privileges** (Phase 0 fix verified).
+5. No hardcoded/filler data remains in any customer- or admin-facing surface (§1 fully cleared).
+6. Legal/content pages exist; SEO basics present; a11y passes; errors are tracked.
+7. Tests cover the critical paths and run in CI.
 
 ---
 
