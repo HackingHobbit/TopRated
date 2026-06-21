@@ -4,14 +4,19 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShoppingCart, User, Search, Menu, X } from 'lucide-react';
+import { ShoppingCart, User, Search, Menu, X, LayoutDashboard } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './Navbar.module.css';
 
 export default function Navbar() {
   const { totalItems, toggleCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  // Admin-only entry point to the dashboard. This is a UX convenience —
+  // the real protection is the server-side gate in app/admin/layout.tsx.
+  // user is null until auth hydrates, so the link simply isn't rendered
+  // for anonymous/visitor sessions.
+  const isAdmin = user?.role === 'admin';
   const router = useRouter();
   const pathname = usePathname();
 
@@ -124,7 +129,14 @@ export default function Navbar() {
             </button>
           </form>
 
-          <button className={styles.iconBtn} onClick={handleUserClick}>
+          {isAdmin && (
+            <Link href="/admin" className={styles.adminBtn} aria-label="Admin dashboard">
+              <LayoutDashboard size={18} />
+              <span>Admin</span>
+            </Link>
+          )}
+
+          <button className={styles.iconBtn} onClick={handleUserClick} aria-label={isAuthenticated ? 'My account' : 'Sign in'}>
             <User size={22} />
           </button>
           <button className={styles.cartBtn} onClick={toggleCart}>
@@ -182,6 +194,17 @@ export default function Navbar() {
             <User size={20} />
             {isAuthenticated ? 'My Account' : 'Sign In'}
           </button>
+
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={styles.mobileAdminLink}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <LayoutDashboard size={20} />
+              Admin Dashboard
+            </Link>
+          )}
         </nav>
       </div>
     </header>

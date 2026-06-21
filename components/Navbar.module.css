@@ -115,6 +115,28 @@
   gap: 1.5rem;
 }
 
+.adminBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-red);
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid var(--accent-red);
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all var(--transition-fast);
+}
+
+.adminBtn:hover {
+  background: var(--accent-red);
+  color: white;
+}
+
 .iconBtn {
   color: var(--text-secondary);
   transition: color var(--transition-fast);
@@ -310,4 +332,14 @@
   font-size: 1.25rem;
   padding: 0;
   cursor: pointer;
+}
+
+/* Higher specificity than `.mobileNavLinks a` so the accent color + flex
+   layout win over the generic mobile-link rule. */
+.mobileNavLinks .mobileAdminLink {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--accent-red);
+  font-size: 1.25rem;
 }
