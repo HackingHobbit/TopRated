@@ -8,7 +8,7 @@ This is the single source of truth for finishing the site: what's real vs. fille
 
 ---
 
-## 0. Where the site actually stands today (June 20, 2026)
+## 0. Where the site actually stands today (updated June 21, 2026)
 
 **Real and live:**
 - Supabase Auth (email/password), real sessions, server-side admin gate, RLS at the database.
@@ -16,15 +16,18 @@ This is the single source of truth for finishing the site: what's real vs. fille
 - Admin can toggle 4 flags and edit name/description/price/image-URL, writing to Postgres.
 - Admin-only "Admin" button in the navbar.
 - Customer signup creates an `auth.users` + `profiles` row.
+- **User & staff administration** (`/admin/users`) — list/search, role change (with self-lockout + last-admin guards), profile edit, password reset, and create/delete login accounts (service-role key wired on local + Netlify). *(§6 — shipped & verified)*
+- **Custom Inventory / singles** (`/admin/singles`) — full CRUD for individual cards, grouped by category, with multi-photo upload to Supabase Storage and **rear-camera capture on mobile**. *(§5 / Phase D — shipped & verified)*
+- **Role-escalation hole is closed** — migration 0002's guard trigger blocks non-admins from changing their own role. *(Phase 0 — done)*
 
 **Still a prototype underneath the polish:**
-- Checkout takes no money and saves no order.
-- Most admin dashboards, the account page, and the homepage events are hardcoded literals.
-- No product images can be uploaded — only URLs pasted.
-- No "singles" workflow at all.
+- Checkout takes no money and saves no order (no tax).
+- Admin dashboard metrics, the Orders & Customers admin pages, the account order history, and the homepage events are still hardcoded literals.
+- The *sealed-product* inventory page still can't add/delete products, set quantity, or upload photos (the singles flow can — the `<PhotoUploader>` is now reusable to bring this to the main inventory).
+- 376 of 432 product images are still `loremflickr` placeholders.
 - Cart and want-list evaporate on refresh.
 
-The visual quality is high, which is exactly why the filler is dangerous: it looks done. Section 1 inventories every place that is *not*.
+The visual quality is high, which is exactly why the remaining filler is dangerous: it looks done. Section 1 inventories every place that is *not*.
 
 ---
 
@@ -100,8 +103,8 @@ Every row below is a literal placeholder in the code, with the file to fix. Seve
 - ❌ Bulk edit / CSV
 - ❌ Pagination / search on the table
 
-**Required build (Phase C):**
-1. **"Add Product" flow** — a create form (reusing an upgraded `ProductEditModal`) calling a new `createProduct()` server action (gated by `assertAdmin`, writing to Postgres, `revalidateTag`).
+**Required build (Phase C):** *(note: the singles work already shipped all of these for individual cards — the `<PhotoUploader>`, the `product-images` Storage bucket, and `createSingle`/`updateSingle`/`deleteSingle`. Phase C is now mostly "apply the same patterns to the main/sealed inventory page.")*
+1. **"Add Product" flow** — a create form (reusing an upgraded `ProductEditModal` or the singles `SingleForm`) calling a new `createProduct()` server action (gated by `assertAdmin`, writing to Postgres, `revalidateTag`).
 2. **Delete with confirmation** — wire the existing `deleteProduct()` to a guarded button (typed confirmation; never a one-click destroy).
 3. **Full field coverage** — all flags, category/subcategory pickers (from the `categories` table), quantity, sku/barcode.
 4. **Image upload** (shared with §5) — drag-drop on desktop, file picker, replacing URL-paste (URL kept as a fallback/advanced option).
@@ -110,7 +113,9 @@ Every row below is a literal placeholder in the code, with the file to fix. Seve
 
 ---
 
-## 5. Singles inventory + photo capture (the priority feature)
+## 5. Singles inventory + photo capture (the priority feature) — ✅ SHIPPED (June 21)
+
+> Built and live: migration 0002, the `product-images` Storage bucket + RLS, `<PhotoUploader>` (drag-drop + file picker + mobile rear-camera capture + client compression), and full CRUD at `/admin/singles` grouped by category. Verified end-to-end (create → companion row → delete; admin upload → public read → delete). The remaining follow-up is storefront-side: show grade/condition/cert and the photo gallery on the single's public PDP. Original spec retained below for reference.
 
 **Goal:** a dedicated, *delightfully easy* workflow for listing individual cards — where the bottleneck is photographing the card, and the app makes that the fast part. Optimized for a phone in one hand and a card in the other.
 
@@ -158,11 +163,11 @@ This feature spans schema + storage + a new server action + a new admin route + 
 
 ---
 
-## 6. User & staff administration (CRUD + roles)
+## 6. User & staff administration (CRUD + roles) — ✅ SHIPPED (June 21)
 
-The plan previously only covered *reading* customers (Phase B wires the Customers page to real data). You also need to **administer** both customers and staff. This is a distinct workstream.
+> Built and live at `/admin/users`: list/search, role change (with self-lockout + last-admin guards), profile edit, password reset, and create/delete login accounts via the server-only service-role client (key wired on local + Netlify). Verified end-to-end (created a test account, then deleted it). Not yet built: an audit log of admin actions, and an optional limited `staff` tier. Original spec retained below.
 
-### 🔴 URGENT security fix — live privilege-escalation hole
+### ✅ RESOLVED — was: live privilege-escalation hole
 The RLS policy `"profiles self update"` (`supabase/migrations/0001_init.sql:269`) is:
 ```sql
 create policy "profiles self update" on public.profiles for update using (id = auth.uid());
@@ -208,10 +213,12 @@ A `/admin/users` section (or the upgraded `/admin/customers`): searchable user t
 
 Each phase ends in something testable and deployable. Phases A–C are launch-blocking; D is the priority feature; E is post-launch hardening.
 
-### Phase 0 — Immediate security fix (do now, minutes)
-Apply the `profiles` privileged-column trigger from §6 to close the live role-escalation hole. One small migration; no app code change. Everything else can wait behind this.
+> **Progress (June 21, 2026):** ✅ **Phase 0** done · ✅ **Phase D** (singles + photos) done · ✅ **Phase B item 3** (user & staff admin) done. Remaining priority order below: **Phase A** (transact) → rest of **Phase B** → **Phase C** → **Phase E**.
 
-### Phase A — Make it transact (highest priority)
+### Phase 0 — Immediate security fix — ✅ DONE (June 21)
+Migration `0002` applied; the `profiles` guard trigger blocks non-admin role/loyalty changes. Live-verified.
+
+### Phase A — Make it transact (highest priority — NEXT)
 1. **Order persistence** — on checkout submit, write `orders` + `order_items`, decrement `products.quantity`, generate a real order number, store shipping snapshot. (Tables exist.)
 2. **Clover payment** — hosted iframe tokenization → charge → webhook for `payment.success/failed`; idempotency keys; `/checkout/canceled` route. Card data never touches the server.
 3. **Tax** — server-side calc from shipping address (the Clover export carries a 9.25% Windsor rate); show + persist it.
@@ -220,16 +227,17 @@ Apply the `profiles` privileged-column trigger from §6 to close the live role-e
 
 ### Phase B — Truth in the admin & account UI + user administration
 1. Wire **admin dashboard** metrics + "Recent Activity" to real aggregate queries.
-2. Wire **admin Orders** to `orders` (+ a real fulfillment state machine: Pending→Processing→Shipped→Delivered→Returned, writing to `inventory_transactions`).
-3. **User & staff administration** (per §6) — `/admin/users`: list/search, view, edit, **role management** (promote/demote with self-lockout + last-admin guards), **create staff**, deactivate/ban/delete (server-only service-role client), password-reset, audit log. (Phase 0 trigger is a prerequisite.)
+2. Wire **admin Orders** to `orders` (+ a real fulfillment state machine: Pending→Processing→Shipped→Delivered→Returned, writing to `inventory_transactions`). *(depends on Phase A order data)*
+3. ✅ **DONE** — **User & staff administration** (per §6): `/admin/users` with list/search, edit, role management (self-lockout + last-admin guards), create/delete accounts via service-role, password reset. *(Audit log is the one nice-to-have not yet added.)*
 4. **Account**: real loyalty tier from points; build (or hide) Settings.
-5. Fix **PDP stock status** to reflect `isOutOfStock`; guard OOS add-to-cart everywhere.
+5. Fix **PDP stock status** to reflect `isOutOfStock`; guard OOS add-to-cart everywhere. *(unblocked now — small, no dependencies)*
+6. Wire **admin Customers** to real `profiles` data *(unblocked now — user data already exists)*.
 
-### Phase C — Admin product CRUD (per §4)
-Add/delete/edit-all-fields, quantity, image upload, optimistic toggles, server-side paginated/searchable table.
+### Phase C — Admin product CRUD (per §4) — partially unlocked
+Add/delete/edit-all-fields, quantity, **image upload**, optimistic toggles, server-side paginated/searchable table — for the *main/sealed* inventory. The singles flow already does all of this; reuse `<PhotoUploader>`, `createSingle`/`deleteSingle` patterns, and the `product-images` bucket to extend it to sealed products.
 
-### Phase D — Singles inventory + photo capture (per §5)
-Migration `0002`, Storage bucket + policies, `<PhotoUploader>` (with mobile camera capture), `createSingle()` action, `/admin/singles`, storefront singles surfacing.
+### Phase D — Singles inventory + photo capture (per §5) — ✅ DONE (June 21)
+Migration `0002` (single_details, product_images, Storage bucket + RLS) applied; `<PhotoUploader>` with mobile rear-camera capture; `createSingle`/`updateSingle`/`deleteSingle`; `/admin/singles` category-grouped CRUD. Live-verified (create, photo round-trip, delete). **Remaining follow-up:** surface the extra fields (grade/condition/cert) and the multi-photo gallery on the *storefront* single PDP.
 
 ### Phase E — Hardening & polish
 - Cart/want-list persistence; `/shop` pagination; debounced search.
