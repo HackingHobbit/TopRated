@@ -29,6 +29,7 @@ This is the single source of truth for finishing the site: what's real vs. fille
 - The *sealed-product* inventory page still can't add/delete products, set quantity, or upload photos (the singles flow can — the `<PhotoUploader>` is now reusable to bring this to the main inventory).
 - 376 of 432 product images are still `loremflickr` placeholders.
 - Cart and want-list evaporate on refresh.
+- **Custom Inventory shows 50 non-card items** (beverages/accessories from the import) because "single" is currently defined as `is_sealed=false` — see the **OPEN DECISION in §5** (deferred).
 
 The visual quality is high, which is exactly why the remaining filler is dangerous: it looks done. Section 1 inventories every place that is *not*.
 
@@ -119,7 +120,17 @@ Status legend: ✅ fixed · ⬜ still filler. Severity: 🔴 customer-visible/la
 
 ## 5. Singles inventory + photo capture (the priority feature) — ✅ SHIPPED (June 21)
 
-> Built and live: migration 0002, the `product-images` Storage bucket + RLS, `<PhotoUploader>` (drag-drop + file picker + mobile rear-camera capture + client compression), and full CRUD at `/admin/singles` grouped by category. Verified end-to-end (create → companion row → delete; admin upload → public read → delete). The remaining follow-up is storefront-side: show grade/condition/cert and the photo gallery on the single's public PDP. Original spec retained below for reference.
+> Built and live: migration 0002, the `product-images` Storage bucket + RLS, `<PhotoUploader>` (drag-drop + file picker + mobile rear-camera capture + client compression), and full CRUD at `/admin/singles` grouped by category. Verified end-to-end (create → companion row → delete; admin upload → public read → delete). Original spec retained below for reference.
+
+> ### ⚠️ OPEN DECISION — what counts as a "single"? (deferred June 21)
+> The Custom Inventory page currently defines a single as **any product with `is_sealed = false`** (`getSingles()` in `lib/db.ts`). That's too broad: verified against the live DB, the 50 items it shows are **not cards** — they're beverages and accessories from the Clover import (Yerba Mate, Coca-Cola, Gatorade…), all on placeholder images, and **none** has a `single_details` row (0 created via the new flow). So the page is scooping up every non-sealed miscellaneous SKU.
+> **Decision needed before this page is trustworthy.** Options:
+> 1. **(Recommended)** Define a single as "has a `single_details` row" — Custom Inventory then starts empty and contains only cards actually added/marked as singles. Small change to `getSingles()` + the storefront singles filter.
+> 2. Add an explicit `is_single` boolean to `products` and backfill the genuine singles.
+> 3. Leave the `is_sealed=false` heuristic and manually recategorize.
+> **Status: deferred** — user chose to leave it for now (June 21). Revisit before relying on Custom Inventory counts or surfacing a "Singles" section on the storefront.
+>
+> Other follow-up: surface grade/condition/cert and the photo gallery on the single's public PDP.
 
 **Goal:** a dedicated, *delightfully easy* workflow for listing individual cards — where the bottleneck is photographing the card, and the app makes that the fast part. Optimized for a phone in one hand and a card in the other.
 
@@ -241,7 +252,7 @@ Migration `0002` applied; the `profiles` guard trigger blocks non-admin role/loy
 Add/delete/edit-all-fields, quantity, **image upload**, optimistic toggles, server-side paginated/searchable table — for the *main/sealed* inventory. The singles flow already does all of this; reuse `<PhotoUploader>`, `createSingle`/`deleteSingle` patterns, and the `product-images` bucket to extend it to sealed products.
 
 ### Phase D — Singles inventory + photo capture (per §5) — ✅ DONE (June 21)
-Migration `0002` (single_details, product_images, Storage bucket + RLS) applied; `<PhotoUploader>` with mobile rear-camera capture; `createSingle`/`updateSingle`/`deleteSingle`; `/admin/singles` category-grouped CRUD. Live-verified (create, photo round-trip, delete). **Remaining follow-up:** surface the extra fields (grade/condition/cert) and the multi-photo gallery on the *storefront* single PDP.
+Migration `0002` (single_details, product_images, Storage bucket + RLS) applied; `<PhotoUploader>` with mobile rear-camera capture; `createSingle`/`updateSingle`/`deleteSingle`; `/admin/singles` category-grouped CRUD. Live-verified (create, photo round-trip, delete). **Remaining follow-ups:** (a) **resolve the OPEN DECISION in §5** — the "single = `is_sealed=false`" definition currently surfaces 50 non-card items (beverages/accessories) from the import; (b) surface the extra fields (grade/condition/cert) and the multi-photo gallery on the *storefront* single PDP.
 
 ### Phase E — Hardening & polish
 - Cart/want-list persistence; `/shop` pagination; debounced search.
