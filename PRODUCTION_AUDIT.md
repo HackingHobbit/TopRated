@@ -9,6 +9,8 @@
 > **Resolved since this audit (as of June 21):** §1.1 Supabase Auth · §1.2 Supabase Postgres (products live) · §1.4 order persistence (orders/items/transactions, server-priced) · §1.6 admin authentication (+ role-escalation fix) · §1.8 admin Customers page (real data) · plus out-of-stock enforcement and the full **user/staff admin** and **singles + photo-capture** features (not in the original tiers).
 >
 > **Still open (launch-blocking):** §1.3 real payments (Clover) · §1.5 transactional email · §1.7 real product images · §1.9 tax · §1.10 legal/content pages. Account order history, the admin dashboard/Orders pages, cart persistence, pagination, and SEO remain per Tiers 2–4.
+>
+> **Also flagged (new, high priority):** the site is **desktop-first and looks broken on mobile** (shop filters bury products; admin sidebar/tables overflow). Tracked as **Phase M** in `MASTER_PLAN.md` §3.
 
 This audit picks up after the inventory ingest and the in-session bug fixes. It answers the question: **what's still required to turn this from a prototype into a real, functioning ecommerce site you can actually take orders on?**
 
