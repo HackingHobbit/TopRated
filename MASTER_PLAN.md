@@ -19,10 +19,13 @@ This is the single source of truth for finishing the site: what's real vs. fille
 - **User & staff administration** (`/admin/users`) — list/search, role change (with self-lockout + last-admin guards), profile edit, password reset, and create/delete login accounts (service-role key wired on local + Netlify). *(§6 — shipped & verified)*
 - **Custom Inventory / singles** (`/admin/singles`) — full CRUD for individual cards, grouped by category, with multi-photo upload to Supabase Storage and **rear-camera capture on mobile**. *(§5 / Phase D — shipped & verified)*
 - **Role-escalation hole is closed** — migration 0002's guard trigger blocks non-admins from changing their own role. *(Phase 0 — done)*
+- **Checkout persists real orders** — `placeOrder` writes `orders` + `order_items` + `inventory_transactions`, re-priced server-side, with a real order number. *(Phase A1 — done; payment is still mocked.)*
+- **Out-of-stock is enforced** — OOS items can't be added (PDP, card, and cart). *(Phase B5 — done.)*
+- **Admin Customers page is real** — profiles + order aggregates. *(Phase B6 — done.)*
 
 **Still a prototype underneath the polish:**
-- Checkout takes no money and saves no order (no tax).
-- Admin dashboard metrics, the Orders & Customers admin pages, the account order history, and the homepage events are still hardcoded literals.
+- Checkout collects card fields but takes **no real payment** (Clover, A2) and adds **no tax** (A3); orders save as status `pending`.
+- The account order history, admin dashboard metrics, the admin Orders page, and the homepage events are still hardcoded literals.
 - The *sealed-product* inventory page still can't add/delete products, set quantity, or upload photos (the singles flow can — the `<PhotoUploader>` is now reusable to bring this to the main inventory).
 - 376 of 432 product images are still `loremflickr` placeholders.
 - Cart and want-list evaporate on refresh.
@@ -33,29 +36,30 @@ The visual quality is high, which is exactly why the remaining filler is dangero
 
 ## 1. Filler / preview content (what is fake right now)
 
-Every row below is a literal placeholder in the code, with the file to fix. Severity: 🔴 customer-visible/launch-blocking · 🟡 admin-visible · ⚪ cosmetic.
+Status legend: ✅ fixed · ⬜ still filler. Severity: 🔴 customer-visible/launch-blocking · 🟡 admin-visible · ⚪ cosmetic. (File line numbers are approximate — they've shifted as code changed.)
 
-| Area | What's fake | File | Sev |
+| Status | Area | Notes | Sev |
 |---|---|---|---|
-| **Checkout payment** | "Payment Method (Mock)"; card fields collected then discarded; `setTimeout` simulates success | `app/checkout/page.tsx:166-217` | 🔴 |
-| **Order number** | `TR-${Math.floor(Math.random()*100000)}` — not a real persisted order | `app/checkout/page.tsx:66` | 🔴 |
-| **Order persistence** | `clearCart()` then show success; nothing written to `orders` | `app/checkout/page.tsx:71-77` | 🔴 |
-| **Tax** | No tax line anywhere; summary is subtotal + flat shipping only | `app/checkout/page.tsx:238-256` | 🔴 |
-| **Account → Order History** | Hardcoded "Order #TR-10492 / Premium Hobby Box / $215.49" | `app/account/page.tsx:94-120` | 🔴 |
-| **Account → loyalty tier** | "Gold Tier" badge hardcoded regardless of points | `app/account/page.tsx:55` | 🟡 |
-| **Account → Settings** | "Settings functionality will be implemented in Phase 4" | `app/account/page.tsx:148` | 🟡 |
-| **Admin dashboard metrics** | `$4,295.50`, `24`, `12`, `1,204`, `+12%`, `+5%` — all literals | `app/admin/page.tsx:26-60` | 🟡 |
-| **Admin dashboard "Recent Activity"** | Hardcoded TR-10495/10494/10493 rows | `app/admin/page.tsx:79-108` | 🟡 |
-| **Admin Orders page** | Entire table hardcoded; "Fulfill"/"View"/"Export CSV"/search all no-ops | `app/admin/orders/page.tsx` | 🟡 |
-| **Admin Customers page** | `MOCK_CUSTOMERS` array; "View Profile"/"Export CSV" no-ops | `app/admin/customers/page.tsx:3-36` | 🟡 |
-| **PDP stock status** | "In Stock and Ready to Ship" shown even for out-of-stock items | `app/shop/[id]/ProductDetailClient.tsx:43-45` | 🔴 |
-| **PDP guarantee box** | Static marketing copy (fine, but confirm it's true) | `app/shop/[id]/ProductDetailClient.tsx:102-105` | ⚪ |
-| **Homepage events** | 3 hardcoded event cards (Friday Night Magic, etc.) | `app/page.tsx:106-130` | ⚪ |
-| **Store address / map** | "123 Collector's Avenue, Hobby City, CA 90210"; static `map.png`; "Get Directions" → generic `maps.google.com` | `app/page.tsx:143-167` | 🔴 (real address needed) |
-| **Footer policy/social links** | All `href="#"` | `components/Footer.tsx` | 🔴 (legal) |
-| **Product images** | 376 of 432 are `loremflickr` placeholders | `data/db.json` / Supabase `products.image` | 🔴 |
-| **Hero "Browse TCG" link** | Points to `?subCategory=Pok%C3%A9mon`, but the DB subcategory is `TCG` (Pokémon is a search term) → likely shows "No products found" | `app/page.tsx:74` | 🟡 (bug) |
-| **Content pages** | No Privacy, Terms, Returns, Shipping, FAQ, Contact pages exist | — | 🔴 (legal) |
+| ✅ | **Order number** | Real server-generated number from a persisted order (`lib/orderActions.ts`). | 🔴 |
+| ✅ | **Order persistence** | `placeOrder` writes `orders` + `order_items` + `inventory_transactions`, re-priced server-side. | 🔴 |
+| ✅ | **PDP stock status** | Reflects `isOutOfStock`; OOS add-to-cart blocked on PDP, card, and cart. | 🔴 |
+| ✅ | **Admin Customers page** | Real `profiles` + order aggregates (count/spend/tier) via `getCustomers()`. | 🟡 |
+| ✅ | **Supabase image host** | Added `*.supabase.co` to `next.config` `remotePatterns` so photographed singles render on the storefront (was a latent crash). | 🔴 |
+| ⬜ | **Checkout payment** | Still "Payment Method (Mock)"; card fields collected but no real charge. → Phase A2 (Clover). | 🔴 |
+| ⬜ | **Tax** | Stored as 0; no tax line in the summary. → Phase A3. | 🔴 |
+| ⬜ | **Account → Order History** | Hardcoded "Order #TR-10492…". → Phase A5 (now unblocked). | 🔴 |
+| ⬜ | **Account → loyalty tier** | "Gold Tier" badge hardcoded regardless of points. | 🟡 |
+| ⬜ | **Account → Settings** | "will be implemented in Phase 4" placeholder. | 🟡 |
+| ⬜ | **Admin dashboard metrics** | `$4,295.50`, `24`, `12`, `1,204`, … all literals (`app/admin/page.tsx`). → Phase B1. | 🟡 |
+| ⬜ | **Admin dashboard "Recent Activity"** | Hardcoded TR-10495/10494/10493 rows. → Phase B1. | 🟡 |
+| ⬜ | **Admin Orders page** | Entire table hardcoded; Fulfill/View/Export/search are no-ops. → Phase B2. | 🟡 |
+| ⬜ | **PDP guarantee box** | Static marketing copy (confirm it's true). | ⚪ |
+| ⬜ | **Homepage events** | 3 hardcoded event cards (Friday Night Magic, etc.). | ⚪ |
+| ⬜ | **Store address / map** | "123 Collector's Avenue, Hobby City, CA 90210"; static `map.png`; generic Get-Directions link. | 🔴 (real address) |
+| ⬜ | **Footer policy/social links** | All `href="#"`. | 🔴 (legal) |
+| ⬜ | **Product images** | 376 of 432 are `loremflickr` placeholders. | 🔴 |
+| ⬜ | **Hero "Browse TCG" link** | `?subCategory=Pok%C3%A9mon` matches nothing (DB subcategory is `TCG`, Pokémon is a search term) → "No products found". | 🟡 (bug) |
+| ⬜ | **Content pages** | No Privacy, Terms, Returns, Shipping, FAQ, Contact pages. | 🔴 (legal) |
 
 ---
 
@@ -64,7 +68,7 @@ Every row below is a literal placeholder in the code, with the file to fix. Seve
 ### Storefront
 - **No pagination** — `/shop` renders all 432 `ProductCard`s at once (`app/shop/ShopClient.tsx:161-168`). Heavy DOM, slow on mobile, gets worse as inventory grows. **Fix:** URL-driven `?page=N` (24/page) or infinite scroll.
 - **Client-side search/filter, no debounce** — fine at 432, won't scale; every keystroke re-filters the full array (`ShopClient.tsx:41-67`). **Fix:** `useDeferredValue` now; move to Postgres `tsvector`/`pg_trgm` past ~5k SKUs.
-- **Out-of-stock items are still purchasable** — `ProductCard` shows the badge but `addToCart` has no OOS guard (`ProductCard.tsx:24-29`); the PDP hardcodes "In Stock" and lets you add. **Fix:** guard `addToCart`, gray the button, and make the PDP status reflect `isOutOfStock`.
+- ✅ **Out-of-stock purchasing — FIXED.** `addToCart` rejects OOS items, the card/PDP buttons disable, and the PDP status reflects `isOutOfStock`.
 - **Filter taxonomy mismatch** — the hero/sub-nav mix `category`, `subCategory`, and `search`; some combinations (e.g. `?subCategory=Pokémon`) match nothing. **Fix:** one consistent filter model; verify every nav link resolves to ≥1 product.
 
 ### Cart & checkout
@@ -247,6 +251,7 @@ Migration `0002` (single_details, product_images, Storage bucket + RLS) applied;
 - Real product photography to replace `loremflickr`.
 - a11y pass (dialog semantics, labels, contrast); loading/error routes.
 - Error tracking (Sentry) + analytics + uptime monitor.
+- Minor: drop `unoptimized` on the admin singles/PhotoUploader thumbnails now that `*.supabase.co` is allowlisted (storefront single photos already optimize); add the audit-log for admin user actions (§6); surface singles' grade/condition/gallery on the public PDP (§5 follow-up).
 
 ---
 
