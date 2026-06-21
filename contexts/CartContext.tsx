@@ -40,6 +40,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addToCart = (product: Product, quantity: number = 1) => {
+    // Defense in depth: never let an out-of-stock item into the cart, even
+    // if some caller forgot to guard its button.
+    if (product.isOutOfStock) {
+      addToast({
+        title: 'Out of Stock',
+        message: `${product.name} is currently unavailable.`,
+        type: 'error',
+      });
+      return;
+    }
+
     // IMPORTANT: read `cart` here (outside the updater) and compute the
     // toast message + new cart state up front. React 19's concurrent
     // rendering can call setState updater functions more than once, so

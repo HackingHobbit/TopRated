@@ -18,12 +18,14 @@ export default function ProductCard({ product }: ProductCardProps) {
   
   const cartItem = cart.find(item => item.product.id === product.id);
   const isAtMaxLimit = cartItem ? cartItem.quantity >= 3 : false;
-  
+  const outOfStock = product.isOutOfStock;
+  const cannotAdd = isAtMaxLimit || outOfStock;
+
   const favorited = isFavorite(product.id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation when clicking add to cart
-    if (!isAtMaxLimit) {
+    if (!cannotAdd) {
       addToCart(product);
     }
   };
@@ -79,12 +81,16 @@ export default function ProductCard({ product }: ProductCardProps) {
           <p className={styles.subTitle}>{product.subCategory} - {product.category}</p>
         </Link>
         <p className={styles.price}>${product.price.toFixed(2)}</p>
-        <button 
+        <button
           className={`btn-primary ${styles.addToCart}`}
           onClick={handleAddToCart}
-          disabled={isAtMaxLimit}
+          disabled={cannotAdd}
         >
-          {isAtMaxLimit ? 'Max Limit Reached' : 'Add to Cart'}
+          {outOfStock
+            ? 'Out of Stock'
+            : isAtMaxLimit
+              ? 'Max Limit Reached'
+              : 'Add to Cart'}
         </button>
       </div>
     </div>

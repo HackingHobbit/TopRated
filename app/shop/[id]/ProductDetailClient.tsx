@@ -23,7 +23,9 @@ export default function ProductDetailClient({ product }: Props) {
   );
   const currentCartQty = cartItem?.quantity ?? 0;
   const maxAddable = Math.max(0, PER_ITEM_LIMIT - currentCartQty);
+  const outOfStock = product.isOutOfStock;
   const isAtMaxLimit = maxAddable === 0;
+  const cannotAdd = outOfStock || isAtMaxLimit;
 
   // Clamp the in-page quantity selector to whatever's left, so the
   // selector can't ever ask the cart for more than it will accept.
@@ -31,7 +33,7 @@ export default function ProductDetailClient({ product }: Props) {
   const effectiveQuantity = Math.min(selectedQuantity, Math.max(1, maxAddable));
 
   const handleAddToCart = () => {
-    if (isAtMaxLimit) return;
+    if (cannotAdd) return;
     addToCart(product, effectiveQuantity);
     setSelectedQuantity(1);
   };
@@ -41,7 +43,11 @@ export default function ProductDetailClient({ product }: Props) {
   return (
     <>
       <div className={styles.stockStatus}>
-        <span className={styles.statusDot}></span> In Stock and Ready to Ship
+        <span
+          className={styles.statusDot}
+          style={outOfStock ? { background: 'var(--accent-red)' } : undefined}
+        ></span>{' '}
+        {outOfStock ? 'Currently Out of Stock' : 'In Stock and Ready to Ship'}
       </div>
 
       <div className={styles.quantitySelector}>
@@ -52,7 +58,7 @@ export default function ProductDetailClient({ product }: Props) {
             onClick={() =>
               setSelectedQuantity((q) => Math.max(1, q - 1))
             }
-            disabled={isAtMaxLimit || effectiveQuantity <= 1}
+            disabled={cannotAdd || effectiveQuantity <= 1}
             aria-label="Decrease quantity"
           >
             <Minus size={16} />
@@ -63,7 +69,7 @@ export default function ProductDetailClient({ product }: Props) {
             onClick={() =>
               setSelectedQuantity((q) => Math.min(maxAddable, q + 1))
             }
-            disabled={isAtMaxLimit || effectiveQuantity >= maxAddable}
+            disabled={cannotAdd || effectiveQuantity >= maxAddable}
             aria-label="Increase quantity"
           >
             <Plus size={16} />
@@ -80,13 +86,15 @@ export default function ProductDetailClient({ product }: Props) {
         <button
           className={`btn-primary ${styles.addToCartBtn}`}
           onClick={handleAddToCart}
-          disabled={isAtMaxLimit}
+          disabled={cannotAdd}
         >
-          {isAtMaxLimit
-            ? `Max Cart Limit (${PER_ITEM_LIMIT}) Reached`
-            : effectiveQuantity > 1
-              ? `Add ${effectiveQuantity} to Cart`
-              : 'Add to Cart'}
+          {outOfStock
+            ? 'Out of Stock'
+            : isAtMaxLimit
+              ? `Max Cart Limit (${PER_ITEM_LIMIT}) Reached`
+              : effectiveQuantity > 1
+                ? `Add ${effectiveQuantity} to Cart`
+                : 'Add to Cart'}
         </button>
         <button
           type="button"

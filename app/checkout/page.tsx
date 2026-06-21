@@ -4,15 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { placeOrder, type ShippingDetails } from '@/lib/orderActions';
 import styles from './page.module.css';
-
-interface ShippingDetails {
-  fullName: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-}
 
 export default function CheckoutPage() {
   const { cart, totalPrice, clearCart } = useCart();
@@ -21,9 +14,9 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
-  // Order id is generated ONCE when the order is placed and stored in
-  // state, so it doesn't change on every re-render the way the previous
-  // `Math.random()` in render did.
+  const [error, setError] = useState<string | null>(null);
+  // The real order number comes back from the server (a persisted order),
+  // not a client-side Math.random().
   const [orderId, setOrderId] = useState<string | null>(null);
   const [shippingDetails, setShippingDetails] =
     useState<ShippingDetails | null>(null);
@@ -47,13 +40,14 @@ export default function CheckoutPage() {
     );
   }
 
-  const handlePlaceOrder = (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePlaceOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
     setIsProcessing(true);
 
-    // Collect form values. Card data is intentionally not stored — in the
-    // real app this would be tokenized by Clover's iframe and never touch
-    // our backend (per docs/SPECIFICATION.md §B "Secure Vaulting").
+    // Collect shipping. Card data is intentionally not stored — real payment
+    // (Clover, Phase A2) will tokenize it client-side; for now the order is
+    // persisted with status 'pending'.
     const data = new FormData(e.currentTarget);
     const shipping: ShippingDetails = {
       fullName: String(data.get('fullName') ?? ''),
@@ -63,18 +57,21 @@ export default function CheckoutPage() {
       zip: String(data.get('zip') ?? ''),
     };
 
-    const newOrderId = `TR-${Math.floor(Math.random() * 100000)
-      .toString()
-      .padStart(5, '0')}`;
+    const items = cart.map((i) => ({
+      productId: i.product.id,
+      quantity: i.quantity,
+    }));
 
-    // Simulate API delay
-    setTimeout(() => {
-      setOrderId(newOrderId);
-      setShippingDetails(shipping);
-      setIsProcessing(false);
-      clearCart();
-      setStep(3);
-    }, 2000);
+    const res = await placeOrder(items, shipping);
+    setIsProcessing(false);
+    if (!res.ok) {
+      setError(res.error ?? 'Sorry, we couldn’t place your order.');
+      return;
+    }
+    setOrderId(res.orderNumber ?? null);
+    setShippingDetails(shipping);
+    clearCart();
+    setStep(3);
   };
 
   return (
@@ -206,6 +203,18 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               </div>
+
+              {error && (
+                <p
+                  style={{
+                    color: 'var(--accent-red)',
+                    marginBottom: '0.75rem',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  {error}
+                </p>
+              )}
 
               <button
                 type="submit"

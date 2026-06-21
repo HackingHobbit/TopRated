@@ -236,6 +236,71 @@ export const getSingles = cache(async (): Promise<Product[]> => {
   return all.filter((p) => !p.isSealed);
 });
 
+export interface CustomerRow {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'customer';
+  loyaltyPoints: number;
+  orders: number;
+  spent: number;
+  tier: 'Bronze' | 'Silver' | 'Gold' | 'Diamond';
+}
+
+function tierFor(points: number): CustomerRow['tier'] {
+  if (points >= 5000) return 'Diamond';
+  if (points >= 1000) return 'Gold';
+  if (points >= 250) return 'Silver';
+  return 'Bronze';
+}
+
+/** Customers for the admin Customers page: real profiles enriched with order
+ *  count + lifetime spend aggregated from the orders table. */
+export const getCustomers = cache(async (): Promise<CustomerRow[]> => {
+  if (!supabaseConfigured()) return [];
+  const supabase = await getSupabaseServer();
+  if (!supabase) return [];
+
+  const [{ data: profiles }, { data: orders }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, name, email, role, loyalty_points, created_at')
+      .order('created_at', { ascending: false }),
+    supabase.from('orders').select('customer_id, total'),
+  ]);
+
+  const agg = new Map<string, { orders: number; spent: number }>();
+  for (const o of (orders ?? []) as { customer_id: string | null; total: number | string }[]) {
+    if (!o.customer_id) continue;
+    const a = agg.get(o.customer_id) ?? { orders: 0, spent: 0 };
+    a.orders += 1;
+    a.spent += Number(o.total) || 0;
+    agg.set(o.customer_id, a);
+  }
+
+  return ((profiles ?? []) as {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+    loyalty_points: number | null;
+    created_at: string;
+  }[]).map((p) => {
+    const a = agg.get(p.id) ?? { orders: 0, spent: 0 };
+    const points = p.loyalty_points ?? 0;
+    return {
+      id: p.id,
+      name: p.name ?? '',
+      email: p.email,
+      role: p.role === 'admin' ? 'admin' : 'customer',
+      loyaltyPoints: points,
+      orders: a.orders,
+      spent: Math.round(a.spent * 100) / 100,
+      tier: tierFor(points),
+    };
+  });
+});
+
 /** One single with its detail row and ordered images, for the edit screen. */
 export const getSingleWithDetails = cache(
   async (id: string): Promise<SingleWithDetails | null> => {
