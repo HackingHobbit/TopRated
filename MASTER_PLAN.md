@@ -10,6 +10,10 @@ This is the single source of truth for finishing the site: what's real vs. fille
 
 ## 0. Where the site actually stands today (updated June 21, 2026)
 
+> ### 🔴 LIVE STATUS (July 9, 2026): the store is DOWN
+> A live test found the Supabase backend host (`oiibvgnsqbbpjotgedxs.supabase.co`) returns **NXDOMAIN** — the project is paused or gone. The Netlify frontend is healthy, but the storefront shows **no products**, all PDPs 404, and auth/admin/checkout fail. Owner action: check the Supabase dashboard → **Restore** if paused, or recreate + re-migrate + re-push + re-wire env if deleted. Then add a keep-alive (free tier auto-pauses) or upgrade to Pro. Full detail: **`LIVE_TEST_REPORT.md`**.
+> Contributing code defect: `getProducts()` returns `[]` on backend failure with **no `db.json` fallback**, so an outage silently empties the whole catalog instead of degrading. Fix tracked below.
+
 **Real and live:**
 - Supabase Auth (email/password), real sessions, server-side admin gate, RLS at the database.
 - 432 products in Postgres, served to the storefront and the admin inventory table.
@@ -60,7 +64,7 @@ Status legend: ✅ fixed · ⬜ still filler. Severity: 🔴 customer-visible/la
 | ⬜ | **Store address / map** | "123 Collector's Avenue, Hobby City, CA 90210"; static `map.png`; generic Get-Directions link. | 🔴 (real address) |
 | ⬜ | **Footer policy/social links** | All `href="#"`. | 🔴 (legal) |
 | ⬜ | **Product images** | 376 of 432 are `loremflickr` placeholders. | 🔴 |
-| ⬜ | **Hero "Browse TCG" link** | `?subCategory=Pok%C3%A9mon` matches nothing (DB subcategory is `TCG`, Pokémon is a search term) → "No products found". | 🟡 (bug) |
+| ⬜ | **Two dead "Pokémon" links** | Hero "Browse TCG" (`app/page.tsx:74`) AND footer "TCG Cards" (`components/Footer.tsx:38`) point at `?subCategory=Pok%C3%A9mon`, which matches nothing (DB subcategory is `TCG`; Pokémon is a search term) → "No products found". Header nav is correct. Fix both to `?subCategory=TCG`. | 🟡 (bug) |
 | ⬜ | **Content pages** | No Privacy, Terms, Returns, Shipping, FAQ, Contact pages. | 🔴 (legal) |
 
 ---
@@ -276,6 +280,9 @@ Per §3 "Mobile responsiveness." ✅ Done (June 21): shop filters collapse to a 
 - a11y pass (dialog semantics, labels, contrast); loading/error routes.
 - Error tracking (Sentry) + analytics + uptime monitor.
 - Minor: drop `unoptimized` on the admin singles/PhotoUploader thumbnails now that `*.supabase.co` is allowlisted (storefront single photos already optimize); add the audit-log for admin user actions (§6); surface singles' grade/condition/gallery on the public PDP (§5 follow-up).
+- **Resilience (high — surfaced by the July 9 outage):** `getProducts()` returns `[]` on Supabase failure with no fallback, so a backend blip silently empties the whole store. Fall back to `db.json` (or render an explicit error/empty state) when Supabase is configured-but-unreachable.
+- **Ops (high):** free-tier Supabase auto-pauses → the site goes fully down (see LIVE_TEST_REPORT.md, July 9). Add a keep-alive (scheduled ping every few days) or move to Supabase Pro; consider an uptime monitor so an outage is noticed proactively.
+- **Order lifecycle:** orders persist as `pending` and nothing advances them — add the fulfillment state machine (ties to Phase B2 admin Orders).
 
 ---
 
