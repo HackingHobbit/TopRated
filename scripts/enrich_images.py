@@ -124,16 +124,18 @@ def score(cand):
     return round(s, 1)
 
 
-def searx_search(query):
-    qs = urllib.parse.urlencode({
-        "q": query, "categories": "images", "format": "json", "safesearch": "0",
-    })
+def searx_search(query, top=TOP_N, pageno=1, exclude=None):
+    exclude = exclude or set()
+    params = {"q": query, "categories": "images", "format": "json", "safesearch": "0"}
+    if pageno > 1:
+        params["pageno"] = pageno
+    qs = urllib.parse.urlencode(params)
     data = http_json(f"{SEARX}/search?{qs}")
     out = []
     seen = set()
     for r in data.get("results", []):
         src = r.get("img_src") or r.get("thumbnail_src")
-        if not src or src in seen:
+        if not src or src in seen or src in exclude:
             continue
         seen.add(src)
         w, h = dims(r.get("resolution"))
@@ -150,7 +152,7 @@ def searx_search(query):
         out.append(c)
     out = [c for c in out if c["score"] > -100]           # drop hard-junk
     out.sort(key=lambda c: c["score"], reverse=True)
-    return out[:TOP_N]
+    return out[:top]
 
 
 def needs_image(p):

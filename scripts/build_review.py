@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Generate a self-contained image-review gallery from image_candidates.json.
+"""Image-review gallery.
 
-Open scripts/image_review.html in a browser: for each product, click the
-candidate image that correctly matches it (or "No good match"), then click
-"Export approvals.json". Use the magnifier (or press Space on a focused
-thumbnail) to ZOOM a candidate to full resolution before deciding. Feed the
-exported file to:
+Two ways to use it:
 
-    python3 scripts/enrich_images.py --apply scripts/approvals.json
+  Static (offline):   python3 scripts/build_review.py
+      -> writes scripts/image_review.html (open it with `open`). Review + pick,
+         Export approvals.json, then enrich_images.py --apply.
 
-Nothing goes live until you export approvals and run --apply.
+  Live (refine/keep-looking):   python3 scripts/review_server.py
+      -> serves the same gallery with a "Keep looking" checkbox and a per-product
+         query box + "Search again", so you can re-run SearXNG for products whose
+         candidates don't match, without leaving the page.
+
+render_html(data, live) builds the page for both.
 """
 import json
 from pathlib import Path
@@ -18,19 +21,17 @@ ROOT = Path(__file__).resolve().parent.parent
 CANDIDATES = ROOT / "scripts" / "image_candidates.json"
 OUT = ROOT / "scripts" / "image_review.html"
 
-data = json.loads(CANDIDATES.read_text())
-payload = json.dumps(data).replace("</", "<\\/")
-
-HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Top Rated — Image Review</title>
 <style>
   :root{color-scheme:dark}
   body{margin:0;background:#0a0b0f;color:#e7e7ea;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
   header{position:sticky;top:0;background:#14151b;border-bottom:1px solid #2a2b33;padding:12px 20px;
-    display:flex;align-items:center;gap:16px;z-index:10}
+    display:flex;align-items:center;gap:18px;z-index:10;flex-wrap:wrap}
   header h1{font-size:16px;margin:0;color:#fff}
   header .count{color:#9aa0aa}
+  label.keep{display:none;align-items:center;gap:6px;color:#cdd2da;font-size:13px}
   button{cursor:pointer;font:inherit}
   .export{margin-left:auto;background:#DC2626;color:#fff;border:0;border-radius:8px;padding:9px 16px;font-weight:600}
   .wrap{padding:20px;max-width:1200px;margin:0 auto}
@@ -49,13 +50,17 @@ HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
     display:flex;align-items:center;justify-content:center;text-align:center;padding:8px}
   .none.sel{border-color:#DC2626;color:#f87171}
   .empty{color:#f59e0b;font-size:12px}
+  .refine{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
+  .refine input{flex:1;min-width:240px;max-width:560px;padding:7px 10px;background:#0a0b0f;
+    border:1px solid #2a2b33;border-radius:8px;color:#e7e7ea}
+  .refine button{background:#23252e;border:1px solid #3a3b44;color:#e7e7ea;border-radius:8px;padding:7px 12px}
+  .refine button:hover{border-color:#DC2626}
+  .rstat{color:#9aa0aa;font-size:12px}
   /* lightbox */
   .lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;flex-direction:column;z-index:100}
   .lb.open{display:flex}
   .lb .bar{display:flex;align-items:center;gap:14px;padding:12px 18px;color:#e7e7ea;background:#14151b;border-bottom:1px solid #2a2b33}
-  .lb .bar .title{font-weight:600}
-  .lb .bar .sub{color:#9aa0aa;font-size:12px}
-  .lb .bar .spacer{margin-left:auto}
+  .lb .bar .title{font-weight:600}.lb .bar .sub{color:#9aa0aa;font-size:12px}.lb .bar .spacer{margin-left:auto}
   .lb .stage{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px}
   .lb .stage img{height:78vh;max-width:90vw;object-fit:contain;transition:transform .12s;cursor:zoom-in;background:#0f1015}
   .lb .stage img.z2{transform:scale(2);cursor:zoom-out}
@@ -68,6 +73,7 @@ HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <header>
   <h1>Top Rated — Image Review</h1>
   <span class="count" id="count"></span>
+  <label class="keep" id="keepWrap"><input type="checkbox" id="keepLooking" checked> Keep looking on &ldquo;No good match&rdquo;</label>
   <button class="export" onclick="exportApprovals()">Export approvals.json</button>
 </header>
 <div class="wrap" id="wrap"></div>
@@ -78,20 +84,21 @@ HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
     <span class="sub" id="lbSub"></span>
     <span id="lbLoad" style="color:#f59e0b;font-size:12px;margin-left:8px"></span>
     <span class="spacer"></span>
-    <button onclick="lbToggle()">1× / 2×</button>
+    <button onclick="lbToggle()">1&times; / 2&times;</button>
     <button class="primary" id="lbSelBtn" onclick="lbSelect()">Select this</button>
-    <button onclick="lbClose()">Close ✕</button>
+    <button onclick="lbClose()">Close &times;</button>
   </div>
-  <button class="nav prev" onclick="lbNav(-1)">‹</button>
+  <button class="nav prev" onclick="lbNav(-1)">&lsaquo;</button>
   <div class="stage"><img id="lbImg" alt="" onclick="lbToggle()"></div>
-  <button class="nav next" onclick="lbNav(1)">›</button>
+  <button class="nav next" onclick="lbNav(1)">&rsaquo;</button>
 </div>
 
 <script>
 const DATA = __PAYLOAD__;
+const LIVE = __LIVE__;
 const sel = JSON.parse(localStorage.getItem('tr_img_sel')||'{}'); // id -> url ("" = rejected)
-let lb = {pid:null, idx:0};
-let lbToken = 0;
+let lb = {pid:null, idx:0}; let lbToken = 0;
+const J = JSON.stringify;
 
 function save(){localStorage.setItem('tr_img_sel',JSON.stringify(sel));updateCount();}
 function updateCount(){
@@ -100,12 +107,58 @@ function updateCount(){
   document.getElementById('count').textContent=`${chosen} chosen · ${rejected} rejected · ${DATA.length} products`;
 }
 function prod(pid){return DATA.find(p=>p.id===pid);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function cssesc(s){return String(s).replace(/["\\\\]/g,'\\\\$&');}
+
+function candsHTML(p){
+  let h='';
+  if(!p.candidates||!p.candidates.length){
+    h+=`<div class="empty">No candidates yet — ${LIVE?'edit the query and Search again':'needs a manual URL or a photo'}.</div>`;
+  }else{
+    h+=`<div class="cands" data-pid="${esc(p.id)}">`;
+    p.candidates.forEach((c,idx)=>{
+      const s=sel[p.id]===c.url?' sel':'';
+      h+=`<div class="cand${s}" data-url="${esc(c.url)}" onclick='choose(${J(p.id)},${J(c.url)})'>
+        <button class="zoombtn" title="Zoom" onclick='event.stopPropagation();zoom(${J(p.id)},${idx})'>&#10530;</button>
+        <img loading="lazy" src="${esc(c.thumb||c.url)}" onerror="this.style.opacity=.25">
+        <div class="lbl">${esc(c.host||'')} · ${esc(c.resolution||'')} · ${esc(c.engine||'')}</div></div>`;
+    });
+    h+=`<div class="none${sel[p.id]===''?' sel':''}" onclick='choose(${J(p.id)},"")'>No good match</div>`;
+    h+=`</div>`;
+  }
+  if(LIVE){
+    h+=`<div class="refine">
+      <input id="q_${esc(p.id)}" value="${esc(p.query||'')}" placeholder="refine the search query…"
+        onkeydown="if(event.key==='Enter')requery(${J(p.id)})">
+      <button onclick='requery(${J(p.id)})'>&#8635; Search again</button>
+      <span class="rstat" id="rs_${esc(p.id)}"></span></div>`;
+  }
+  return h;
+}
 function reHighlight(pid){
   const box=document.querySelector(`.cands[data-pid="${cssesc(pid)}"]`); if(!box)return;
   box.querySelectorAll('.cand').forEach(el=>el.classList.toggle('sel', el.dataset.url===sel[pid]));
   const none=box.querySelector('.none'); if(none) none.classList.toggle('sel', sel[pid]==="");
 }
-function choose(pid,url){sel[pid]=url;save();reHighlight(pid);}
+function choose(pid,url){
+  sel[pid]=url; save(); reHighlight(pid);
+  if(url==="" && LIVE && document.getElementById('keepLooking').checked) requery(pid);
+}
+async function requery(pid){
+  if(!LIVE) return;
+  const qEl=document.getElementById('q_'+pid); const q=qEl?qEl.value.trim():'';
+  const rs=document.getElementById('rs_'+pid); if(rs) rs.textContent='searching…';
+  try{
+    const url='/api/requery?id='+encodeURIComponent(pid)+(q?('&q='+encodeURIComponent(q)):'');
+    const data=await (await fetch(url)).json();
+    if(data.error) throw new Error(data.error);
+    const p=prod(pid); p.candidates=data.candidates; p.query=data.query;
+    document.getElementById('cw_'+cssId(pid)).innerHTML=candsHTML(p);
+    reHighlight(pid);
+    const rs2=document.getElementById('rs_'+pid); if(rs2) rs2.textContent=`${data.candidates.length} candidates · query: “${data.query}”`;
+  }catch(e){ const rs2=document.getElementById('rs_'+pid); if(rs2) rs2.textContent='error: '+e.message; }
+}
+function cssId(pid){return String(pid).replace(/[^A-Za-z0-9_-]/g,'_');}
 
 function zoom(pid,idx){lb={pid,idx};document.getElementById('lb').classList.add('open');renderLB();}
 function renderLB(){
@@ -118,16 +171,16 @@ function renderLB(){
   if(c.url && c.url!==thumb){
     load.textContent='loading full-res…';
     const full=new Image(); full.decoding='async';
-    full.onload=()=>{ if(token===lbToken){ img.src=c.url; load.textContent=''; } };   // swap when ready (ignore if user moved on)
+    full.onload=()=>{ if(token===lbToken){ img.src=c.url; load.textContent=''; } };
     full.onerror=()=>{ if(token===lbToken){ load.textContent='(full-res blocked — showing thumbnail)'; } };
     full.src=c.url;
   } else { load.textContent=''; }
   const n=p.candidates.length;
-  [(lb.idx+1)%n,(lb.idx-1+n)%n].forEach(j=>{const u=p.candidates[j].url; if(u)(new Image()).src=u;});  // warm neighbors
+  [(lb.idx+1)%n,(lb.idx-1+n)%n].forEach(j=>{const u=p.candidates[j].url; if(u)(new Image()).src=u;});
   document.getElementById('lbTitle').textContent=p.name;
   document.getElementById('lbSub').textContent=`${lb.idx+1}/${n} · ${c.host||''} · ${c.resolution||''} · ${c.engine||''}`;
   const chosen=sel[lb.pid]===c.url;
-  const b=document.getElementById('lbSelBtn'); b.textContent=chosen?'Selected ✓':'Select this'; b.classList.toggle('on',chosen);
+  const b=document.getElementById('lbSelBtn'); b.textContent=chosen?'Selected \\u2713':'Select this'; b.classList.toggle('on',chosen);
 }
 function lbNav(d){const p=prod(lb.pid);lb.idx=(lb.idx+d+p.candidates.length)%p.candidates.length;renderLB();}
 function lbSelect(){const c=prod(lb.pid).candidates[lb.idx];choose(lb.pid,c.url);renderLB();}
@@ -142,29 +195,16 @@ document.getElementById('lb').addEventListener('click',e=>{if(e.target.id==='lb'
 
 function render(){
   const wrap=document.getElementById('wrap');
+  if(LIVE) document.getElementById('keepWrap').style.display='flex';
   DATA.forEach(p=>{
     const d=document.createElement('div');d.className='prod';
-    let html=`<h2>${esc(p.name)}</h2><div class="meta">${esc(p.category||'')} · ${esc(p.subCategory||'')} · query: “${esc(p.query||'')}”</div>`;
-    if(!p.candidates||!p.candidates.length){html+=`<div class="empty">No candidates found — needs a manual URL or a photo.</div>`;}
-    else{
-      html+=`<div class="cands" data-pid="${esc(p.id)}">`;
-      p.candidates.forEach((c,idx)=>{
-        const s=sel[p.id]===c.url?' sel':'';
-        html+=`<div class="cand${s}" data-url="${esc(c.url)}" onclick='choose(${JSON.stringify(p.id)},${JSON.stringify(c.url)})'>
-          <button class="zoombtn" title="Zoom" onclick='event.stopPropagation();zoom(${JSON.stringify(p.id)},${idx})'>⤢</button>
-          <img loading="lazy" src="${esc(c.thumb||c.url)}" onerror="this.style.opacity=.25;this.alt='(preview blocked — zoom to load full image)'">
-          <div class="lbl">${esc(c.host||'')} · ${esc(c.resolution||'')} · ${esc(c.engine||'')}</div></div>`;
-      });
-      const sn=sel[p.id]===""?' sel':'';
-      html+=`<div class="none${sn}" onclick='choose(${JSON.stringify(p.id)},"")'>No good match</div>`;
-      html+=`</div>`;
-    }
-    d.innerHTML=html;wrap.appendChild(d);
+    d.innerHTML=`<h2>${esc(p.name)}</h2>`+
+      `<div class="meta">${esc(p.category||'')} · ${esc(p.subCategory||'')}</div>`+
+      `<div id="cw_${cssId(p.id)}">${candsHTML(p)}</div>`;
+    wrap.appendChild(d);
   });
   updateCount();
 }
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function cssesc(s){return String(s).replace(/["\\\\]/g,'\\\\$&');}
 function exportApprovals(){
   const out=Object.entries(sel).filter(([,u])=>u).map(([id,url])=>({id,url}));
   const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
@@ -173,7 +213,16 @@ function exportApprovals(){
 render();
 </script></body></html>"""
 
-OUT.write_text(HTML.replace("__PAYLOAD__", payload))
-print(f"Wrote {OUT}")
-print(f"Products: {len(data)} | with candidates: {sum(1 for d in data if d.get('candidates'))}")
-print("Open it:  open scripts/image_review.html")
+
+def render_html(data, live=False):
+    payload = json.dumps(data).replace("</", "<\\/")
+    return TEMPLATE.replace("__PAYLOAD__", payload).replace("__LIVE__", "true" if live else "false")
+
+
+if __name__ == "__main__":
+    data = json.loads(CANDIDATES.read_text())
+    OUT.write_text(render_html(data, live=False))
+    print(f"Wrote {OUT}")
+    print(f"Products: {len(data)} | with candidates: {sum(1 for d in data if d.get('candidates'))}")
+    print("Static gallery: open scripts/image_review.html")
+    print("Live gallery (refine/keep-looking): python3 scripts/review_server.py")
