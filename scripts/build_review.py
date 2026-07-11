@@ -56,6 +56,8 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   .refine button{background:#23252e;border:1px solid #3a3b44;color:#e7e7ea;border-radius:8px;padding:7px 12px}
   .refine button:hover{border-color:#DC2626}
   .rstat{color:#9aa0aa;font-size:12px}
+  .lbl a{color:#9ab4e6;text-decoration:none} .lbl a:hover{text-decoration:underline}
+  .lookup{font-size:12px;color:#8b909a;margin:-2px 0 12px} .lookup a{color:#9ab4e6;text-decoration:none} .lookup a:hover{text-decoration:underline}
   /* lightbox */
   .lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;flex-direction:column;z-index:100}
   .lb.open{display:flex}
@@ -83,6 +85,7 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
     <span class="title" id="lbTitle"></span>
     <span class="sub" id="lbSub"></span>
     <span id="lbLoad" style="color:#f59e0b;font-size:12px;margin-left:8px"></span>
+    <a id="lbSrc" target="_blank" rel="noopener" style="color:#9ab4e6;font-size:13px;text-decoration:none;margin-left:10px">source &#8599;</a>
     <span class="spacer"></span>
     <button onclick="lbToggle()">1&times; / 2&times;</button>
     <button class="primary" id="lbSelBtn" onclick="lbSelect()">Select this</button>
@@ -107,6 +110,15 @@ function updateCount(){
   document.getElementById('count').textContent=`${chosen} chosen · ${rejected} rejected · ${DATA.length} products`;
 }
 function prod(pid){return DATA.find(p=>p.id===pid);}
+function vendorLinks(name){
+  const q=encodeURIComponent(name);
+  const L=(u,t)=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
+  return 'Look this product up: '+[
+    L(`https://www.ebay.com/sch/i.html?_nkw=${q}`,'eBay'),
+    L(`https://www.google.com/search?tbm=shop&q=${q}`,'Google Shopping'),
+    L(`https://www.google.com/search?tbm=isch&q=${q}`,'Google Images'),
+  ].join(' · ');
+}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function cssesc(s){return String(s).replace(/["\\\\]/g,'\\\\$&');}
 
@@ -121,7 +133,7 @@ function candsHTML(p){
       h+=`<div class="cand${s}" data-url="${esc(c.url)}" onclick='choose(${J(p.id)},${J(c.url)})'>
         <button class="zoombtn" title="Zoom" onclick='event.stopPropagation();zoom(${J(p.id)},${idx})'>&#10530;</button>
         <img loading="lazy" src="${esc(c.thumb||c.url)}" onerror="this.style.opacity=.25">
-        <div class="lbl">${esc(c.host||'')} · ${esc(c.resolution||'')} · ${esc(c.engine||'')}</div></div>`;
+        <div class="lbl">${c.page?`<a href="${esc(c.page)}" target="_blank" rel="noopener" title="Open the vendor/source page this image came from" onclick="event.stopPropagation()">${esc(c.host||'source')} &#8599;</a>`:esc(c.host||'')} · ${esc(c.resolution||'')}</div></div>`;
     });
     h+=`<div class="none${sel[p.id]===''?' sel':''}" onclick='choose(${J(p.id)},"")'>No good match</div>`;
     h+=`</div>`;
@@ -179,6 +191,7 @@ function renderLB(){
   [(lb.idx+1)%n,(lb.idx-1+n)%n].forEach(j=>{const u=p.candidates[j].url; if(u)(new Image()).src=u;});
   document.getElementById('lbTitle').textContent=p.name;
   document.getElementById('lbSub').textContent=`${lb.idx+1}/${n} · ${c.host||''} · ${c.resolution||''} · ${c.engine||''}`;
+  const srcEl=document.getElementById('lbSrc'); srcEl.href=c.page||c.url; srcEl.style.display=c.page?'inline':'none';
   const chosen=sel[lb.pid]===c.url;
   const b=document.getElementById('lbSelBtn'); b.textContent=chosen?'Selected \\u2713':'Select this'; b.classList.toggle('on',chosen);
 }
@@ -200,6 +213,7 @@ function render(){
     const d=document.createElement('div');d.className='prod';
     d.innerHTML=`<h2>${esc(p.name)}</h2>`+
       `<div class="meta">${esc(p.category||'')} · ${esc(p.subCategory||'')}</div>`+
+      `<div class="lookup">${vendorLinks(p.name)}</div>`+
       `<div id="cw_${cssId(p.id)}">${candsHTML(p)}</div>`;
     wrap.appendChild(d);
   });
