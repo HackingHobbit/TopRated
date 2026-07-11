@@ -88,6 +88,24 @@ def do_requery(pid, typed_query):
     return {"id": pid, "query": query, "candidates": rec["candidates"]}
 
 
+def do_add(pid, url):
+    if not url.lower().startswith(("http://", "https://")):
+        return {"error": "url must start with http(s)://"}
+    data = load()
+    rec = next((r for r in data if r["id"] == pid), None)
+    if rec is None:
+        return {"error": "unknown product id"}
+    rec.setdefault("candidates", [])
+    if not any(c["url"] == url for c in rec["candidates"]):
+        host = urllib.parse.urlparse(url).netloc
+        rec["candidates"].insert(0, {
+            "url": url, "thumb": url, "page": url, "host": host,
+            "engine": "pasted", "resolution": "pasted", "w": 0, "h": 0, "score": 9999,
+        })
+        save(data)
+    return {"ok": True}
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, ctype, body):
         self.send_response(code)
@@ -107,6 +125,11 @@ class Handler(BaseHTTPRequestHandler):
             q = (qs.get("q") or [""])[0].strip()
             out = do_requery(pid, q)
             return self._send(200, "application/json", json.dumps(out).encode("utf-8"))
+        if u.path == "/api/add":
+            qs = urllib.parse.parse_qs(u.query)
+            pid = (qs.get("id") or [""])[0]
+            url = (qs.get("url") or [""])[0].strip()
+            return self._send(200, "application/json", json.dumps(do_add(pid, url)).encode("utf-8"))
         return self._send(404, "text/plain", b"not found")
 
     def log_message(self, *a):

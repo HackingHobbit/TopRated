@@ -138,6 +138,10 @@ function candsHTML(p){
     h+=`<div class="none${sel[p.id]===''?' sel':''}" onclick='choose(${J(p.id)},"")'>No good match</div>`;
     h+=`</div>`;
   }
+  h+=`<div class="refine">
+      <input id="paste_${esc(p.id)}" placeholder="paste an image URL from a vendor page…"
+        onkeydown="if(event.key==='Enter')addPasted(${J(p.id)})">
+      <button onclick='addPasted(${J(p.id)})'>&#43; Add &amp; select</button></div>`;
   if(LIVE){
     h+=`<div class="refine">
       <input id="q_${esc(p.id)}" value="${esc(p.query||'')}" placeholder="refine the search query…"
@@ -171,6 +175,18 @@ async function requery(pid){
   }catch(e){ const rs2=document.getElementById('rs_'+pid); if(rs2) rs2.textContent='error: '+e.message; }
 }
 function cssId(pid){return String(pid).replace(/[^A-Za-z0-9_-]/g,'_');}
+function hostOf(u){try{return new URL(u).hostname}catch(e){return ''}}
+function addPasted(pid){
+  const el=document.getElementById('paste_'+pid); const url=(el?el.value:'').trim();
+  if(!/^https?:\\/\\//i.test(url)){ if(el){el.style.borderColor='#DC2626';} return; }
+  const p=prod(pid); if(!p.candidates) p.candidates=[];
+  if(!p.candidates.some(c=>c.url===url))
+    p.candidates.unshift({url,thumb:url,page:url,host:hostOf(url),engine:'pasted',resolution:'pasted',w:0,h:0,score:9999});
+  sel[pid]=url; save();                                   // pasted URL is auto-selected
+  document.getElementById('cw_'+cssId(pid)).innerHTML=candsHTML(p);
+  reHighlight(pid);
+  if(LIVE) fetch('/api/add?id='+encodeURIComponent(pid)+'&url='+encodeURIComponent(url)).catch(()=>{});  // persist
+}
 
 function zoom(pid,idx){lb={pid,idx};document.getElementById('lb').classList.add('open');renderLB();}
 function renderLB(){
