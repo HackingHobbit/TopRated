@@ -57,7 +57,7 @@ HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   .lb .bar .sub{color:#9aa0aa;font-size:12px}
   .lb .bar .spacer{margin-left:auto}
   .lb .stage{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px}
-  .lb .stage img{max-width:90vw;max-height:78vh;object-fit:contain;transition:transform .12s;cursor:zoom-in}
+  .lb .stage img{height:78vh;max-width:90vw;object-fit:contain;transition:transform .12s;cursor:zoom-in;background:#0f1015}
   .lb .stage img.z2{transform:scale(2);cursor:zoom-out}
   .lb button{background:#23252e;color:#e7e7ea;border:1px solid #3a3b44;border-radius:8px;padding:8px 12px}
   .lb button.primary{background:#22c55e;border-color:#22c55e;color:#08130a;font-weight:700}
@@ -76,6 +76,7 @@ HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   <div class="bar">
     <span class="title" id="lbTitle"></span>
     <span class="sub" id="lbSub"></span>
+    <span id="lbLoad" style="color:#f59e0b;font-size:12px;margin-left:8px"></span>
     <span class="spacer"></span>
     <button onclick="lbToggle()">1× / 2×</button>
     <button class="primary" id="lbSelBtn" onclick="lbSelect()">Select this</button>
@@ -90,6 +91,7 @@ HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 const DATA = __PAYLOAD__;
 const sel = JSON.parse(localStorage.getItem('tr_img_sel')||'{}'); // id -> url ("" = rejected)
 let lb = {pid:null, idx:0};
+let lbToken = 0;
 
 function save(){localStorage.setItem('tr_img_sel',JSON.stringify(sel));updateCount();}
 function updateCount(){
@@ -108,9 +110,22 @@ function choose(pid,url){sel[pid]=url;save();reHighlight(pid);}
 function zoom(pid,idx){lb={pid,idx};document.getElementById('lb').classList.add('open');renderLB();}
 function renderLB(){
   const p=prod(lb.pid); const c=p.candidates[lb.idx];
-  document.getElementById('lbImg').src=c.url; document.getElementById('lbImg').classList.remove('z2');
+  const img=document.getElementById('lbImg'), load=document.getElementById('lbLoad');
+  img.classList.remove('z2');
+  const thumb=c.thumb||c.url;
+  img.src=thumb;                                  // instant: thumbnail is already cached from the grid
+  const token=++lbToken;
+  if(c.url && c.url!==thumb){
+    load.textContent='loading full-res…';
+    const full=new Image(); full.decoding='async';
+    full.onload=()=>{ if(token===lbToken){ img.src=c.url; load.textContent=''; } };   // swap when ready (ignore if user moved on)
+    full.onerror=()=>{ if(token===lbToken){ load.textContent='(full-res blocked — showing thumbnail)'; } };
+    full.src=c.url;
+  } else { load.textContent=''; }
+  const n=p.candidates.length;
+  [(lb.idx+1)%n,(lb.idx-1+n)%n].forEach(j=>{const u=p.candidates[j].url; if(u)(new Image()).src=u;});  // warm neighbors
   document.getElementById('lbTitle').textContent=p.name;
-  document.getElementById('lbSub').textContent=`${lb.idx+1}/${p.candidates.length} · ${c.host||''} · ${c.resolution||''} · ${c.engine||''}`;
+  document.getElementById('lbSub').textContent=`${lb.idx+1}/${n} · ${c.host||''} · ${c.resolution||''} · ${c.engine||''}`;
   const chosen=sel[lb.pid]===c.url;
   const b=document.getElementById('lbSelBtn'); b.textContent=chosen?'Selected ✓':'Select this'; b.classList.toggle('on',chosen);
 }
