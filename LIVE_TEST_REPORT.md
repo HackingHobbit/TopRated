@@ -1,90 +1,74 @@
 # Top Rated — Live Site Test & Audit
 
-**Date:** July 9, 2026 · **Target:** https://topratedcc.netlify.app (live) · **Repo HEAD at test:** `ba345f3`
-**Method:** real-browser walkthrough (Chrome) + HTTP probing + source review, cross-checked by a 15-agent verification workflow. Findings are grounded in observed evidence; anything unverifiable without an authenticated session is marked as such.
+**Date:** July 11, 2026 · **Target:** https://topratedcc.netlify.app (live)
+**Method:** authenticated real-browser walkthrough (Chrome) of the storefront **and the full admin portal**, plus source review. Signed in as the admin account to exercise every admin screen.
+
+> **Update since the July 9 report:** the Supabase backend has been **restored** — the store is operational again. Products render, sign-in works, and the admin portal is reachable. The July 9 headline (backend NXDOMAIN outage) is resolved. **The underlying risk remains:** free-tier Supabase auto-pauses, so without a keep-alive this *will* recur — see Suggestions.
 
 ---
 
-## 🔴 CRITICAL — the store is down: Supabase backend is unreachable
-
-The **frontend is healthy, but the backend host does not resolve.** `oiibvgnsqbbpjotgedxs.supabase.co` returns **NXDOMAIN** from multiple independent resolvers (Google 8.8.8.8, Cloudflare 1.1.1.1, Cloudflare DoH). A real-browser `fetch` to it returns `TypeError: Failed to fetch`.
-
-**User-facing impact right now:**
-- The homepage featured/new/pre-order sections are empty; `/shop` shows **"No products found"**; every product detail page **404s**.
-- Login, signup, admin, and checkout all depend on Supabase and would fail on use.
-
-**Why it's *total* (not partial):** `lib/db.ts` `getProducts()` takes the Supabase path whenever env vars are present (they are) and **returns `[]` on any error, with no `data/db.json` fallback** — so a backend blip silently empties the entire catalog instead of degrading or surfacing an error.
-
-**Root cause & remedy (owner action — I can't do this):**
-- NXDOMAIN means the project host is gone, not merely slow. Open the Supabase dashboard and check the `TopRatedCC` project:
-  - **If "Paused"** (free-tier inactivity — the risk flagged at setup): click **Restore/Resume**. Data is preserved. Then it's back.
-  - **If deleted/missing** (paused projects can eventually be removed): you'll need to recreate the project, re-run `supabase/migrations/0001` + `0002`, re-push products (`scripts/migrate_to_supabase.py`), and update `NEXT_PUBLIC_SUPABASE_URL` / keys in `.env.local` **and Netlify**, then redeploy.
-- **Prevention:** free-tier projects auto-pause. Add a keep-alive (a scheduled ping every few days) or upgrade to Supabase Pro (~$25/mo, no auto-pause).
-
-Everything below is **masked by this outage** until the backend is restored.
+## Storefront — working (verified live)
+- **Products render** on `/shop` (real Supabase data): e.g. Mosaic Blaster Box $60, Phoenix Blaster $35, Topps Chrome Hobby Box $440, with SEALED/NEW badges.
+- **Out-of-stock is enforced live:** OOS items show the badge and a disabled "Out of Stock" button (can't be added).
+- **Mobile shop** collapses filters behind a "Filters & Sort" toggle (products first).
+- **Auth:** `/login` renders in real Supabase mode; sign-in succeeds; the admin gate redirects anonymous users and lets admins through.
 
 ---
 
-## ✅ Healthy (verified live)
+## Admin Portal — functional audit (all six screens, live)
 
-- **Deploy is current:** live HEAD == `origin/main` == `ba345f3`; homepage HTTP 200 via Netlify + Next.js (Turbopack) — the real app, not the legacy prototype.
-- **Real Supabase mode** is baked in (no "Demo mode" banner on `/login`).
-- **Admin gate works & fails safe:** `/admin`, `/admin/users`, `/admin/singles`, `/admin/inventory` all 307 → `/login?redirect=/admin` for anonymous users — even with the backend down (it doesn't error or leak).
-- **Recent mobile fix shipped:** `/shop` HTML has the "Filters & Sort" collapse toggle; served CSS has the ≤767px collapse + ≥768px row rules. Navbar hamburger menu also live.
-- **Secret hygiene clean:** scanned ~1 MB across 16 JS chunks — no service-role key / JWT leaked; only the browser-safe publishable key. Service key is `server-only`. No `.env` tracked in git.
-- **Some security headers present:** HSTS (`max-age=31536000; includeSubDomains; preload`) and `X-Content-Type-Options: nosniff`; admin redirects carry `Cache-Control: private/no-store`.
-- **Root SEO basics:** homepage `<title>` + meta description present and indexable; not-found pages noindexed.
+| Screen | State | Detail |
+|---|---|---|
+| **Dashboard** (`/admin`) | 🟡 Mock | Metrics are hardcoded literals ($4,295.50 sales, 24 orders, 12 low-stock, 1,204 customers); "Recent Activity" is fake (TR-10495 / Mike W. …). Only the date is dynamic. Decorative — not connected to real data. |
+| **Inventory** (`/admin/inventory`) | 🟢 Real / partial | Real 433 products. Inline flag toggles (Sale/Featured/New/OOS) and per-row **Edit** (name/desc/price/image-URL) work. **Missing:** Add product, Delete, quantity/SKU, and **any in-table search or pagination** (all 433 rows render at once). |
+| **Custom Inventory** (`/admin/singles`) | 🟢 Real / caveat | Full CRUD, category-grouped, with a **search box**, **Add Single**, and per-row edit/delete. The Add form is genuinely good UX (photo capture — "Add Photos" + "Take Photo" — front and center, mobile-first). **Caveat (confirmed live):** the list is populated by **accessories** (binders, sleeves, top loaders), not single cards — the "single = not sealed" definition is too broad. Row thumbnails are empty (imported items have no photo). |
+| **Orders** (`/admin/orders`) | 🔴 Mock | Entirely hardcoded: 4 fake rows with May-2026 dates; **Search, Export CSV, Fulfill, and View are all dead**. A real order placed at checkout never appears here. Highest-impact admin gap. |
+| **Customers** (`/admin/customers`) | 🟢 Real | Wired to real profiles + order aggregates (showed the admin account: Admin, 0 orders, $0.00, Bronze). "Manage Users" link. |
+| **Users** (`/admin/users`) | 🟢 Real | Real user list with **Add User enabled** (service-role key is set on Netlify), an inline role dropdown (customer⇄admin), edit / password-reset / delete actions, and search. Self-delete is disabled. Role/last-admin guards exist in code. |
 
----
-
-## What still needs doing (prioritized, verified in source)
-
-**Blocker**
-- Restore the Supabase backend (above). Nothing sells until this is done.
-
-**High**
-- **Resilience:** make `getProducts()` degrade gracefully (fall back to `db.json` or show an explicit error) instead of returning `[]`, so a backend outage never silently empties the store. *(new finding)*
-- **Payments are fully mock** — card fields collected but never charged; the store cannot transact. (Phase A2 / Clover.)
-- **Admin dashboard** metrics + Recent Activity are hardcoded literals (only the date is dynamic).
-- **Admin Orders** table is mock rows; Search / Export CSV / Fulfill / View are no-ops.
-- **Account order history** is a hardcoded fake order — a customer who places a real order never sees it. (Data-integrity defect: `placeOrder` persists real orders, but `/account` shows a fabricated one.)
-- **SEO:** PDPs have no `generateMetadata` (generic root `<title>` everywhere); `/sitemap.xml` 404s; shop is client-only + currently empty, so no crawlable product content/links.
-- **Security header:** no `Content-Security-Policy` site-wide.
-
-**Medium**
-- Confirm live order **persistence** — depends on `SUPABASE_SERVICE_ROLE_KEY` being set in Netlify (verified locally; not re-checkable while backend is down).
-- **Tax** hardcoded to 0; no tax line in the checkout summary.
-- **Order lifecycle:** orders persist as `pending` and nothing ever advances them (no fulfillment flow).
-- No `X-Frame-Options` / CSP `frame-ancestors` (clickjacking exposure on login/admin).
-- No Open Graph / Twitter cards; no JSON-LD (Product/Organization/Breadcrumb); `robots.txt` 404s; no canonicals / `metadataBase`.
-- **No pagination** — all 432 seed products render at once client-side on `/shop`.
-
-**Low**
-- `Referrer-Policy` / `Permissions-Policy` headers absent.
-- Remaining mobile polish (MASTER_PLAN §3): table card-reflow, cart-drawer width, tap targets.
-- Anon admin sub-route redirect drops the requested sub-path (goes to `/admin`, not the sub-page).
-
-**Confirmed bugs (precisely located)**
-- **Two dead "Pokémon" links:** the hero **"Browse TCG"** (`app/page.tsx:74`) and the footer **"TCG Cards"** (`components/Footer.tsx:38`) point at `?subCategory=Pokémon`, which doesn't exist (seed data uses `subCategory=TCG`; Pokémon is only a search term). Both show "No products found." The header-nav Pokémon link is correct (`subCategory=TCG&search=Pokemon`). *(masked by the outage right now)*
-- Cosmetic: deferred-phase labels are inconsistent in code — checkout copy says "Phase 5", `orderActions.ts` comments say "A2/A3".
+**Net:** the *foundation* screens (Inventory, Custom Inventory, Customers, Users) are real and functional; the *reporting* screens (Dashboard, Orders) are still mock, and Inventory lacks create/delete + search. Orders being fake is the biggest functional hole — it's the screen the shop owner would live in.
 
 ---
 
-## Needs manual/authenticated verification once the backend is back
-- Login / signup end-to-end; user + singles CRUD; non-admin → `/account` bounce.
-- Live order persistence (place a test order → appears in DB/admin) and the role-escalation trigger enforcement.
-- Admin ≤768px mobile stacking (auth-gated, couldn't be seen live).
-- Shop filter toggle runtime interaction + 360–414px layout.
+## Admin Portal — UX audit
+
+**Strengths**
+- Consistent, on-brand shell: persistent left sidebar, a red "ADMIN" pill in the top nav, clear section titles, cohesive dark theme.
+- Efficient patterns where they exist: inline flag toggles on Inventory; role dropdown on Users; guarded destructive actions (self-delete disabled, delete confirmation); toast feedback on inventory/singles/user actions.
+- Custom Inventory and Users each have a **search box + a primary action button** — the right pattern.
+- The Add-a-Single flow is the strongest screen: photo-first, mobile-optimized, sensible field grouping (card details, condition/grading, flags).
+
+**Gaps & inconsistencies**
+- **Inconsistent list UX:** Custom Inventory has search; the main **Inventory (433 rows) has neither search nor pagination** — the screen a shop owner uses most is the hardest to navigate. It should get search, pagination, and Add/Delete to match.
+- **Dead controls erode trust:** Orders' Search / Export CSV / Fulfill / View and the Dashboard metrics look real but do nothing. A non-functional control is worse than none — either wire them or hide them until wired.
+- **Empty thumbnails** in Custom Inventory read as broken. Show a placeholder image / "No photo" chip for items without an image.
+- **No breadcrumb / "back to list"** on the Add/Edit sub-pages (minor navigation friction).
+- **Mobile admin:** the ≤768px stacking fix is confirmed in the live CSS and was verified locally; a live on-device re-check is still worth doing (the audit tool couldn't force a mobile viewport in the real browser).
+- **Data honesty:** because Dashboard/Orders are mock, an admin can't trust any number on the landing screen — fixing these is as much a *trust* issue as a feature.
 
 ---
 
-## Recommended order of operations
-1. **Restore the backend** (owner) — un-breaks home, shop, and all PDPs in one move; then browser-verify products, a real PDP `<title>`, and sign-in.
-2. **Resilience + persistence** — graceful `getProducts()` fallback; confirm `SUPABASE_SERVICE_ROLE_KEY` is set in Netlify so checkout actually writes orders.
-3. **Connect read surfaces to real data** — account order history, admin dashboard, admin Orders (+ status transitions). Core data-integrity fix.
-4. **Commerce essentials** — Clover payments + real tax with a tax line.
-5. **SEO + security headers as a batch** — `generateMetadata` on PDPs, `app/sitemap.ts`, `app/robots.ts`, OG/Twitter + JSON-LD + `metadataBase`/canonicals; CSP + `X-Frame-Options` + `Referrer-Policy` + `Permissions-Policy` via `next.config.ts` headers(); and fix the two `subCategory=Pokémon` links.
+## Cross-cutting — still needed (unchanged by the restore)
+- **Resilience (high):** `getProducts()` still returns `[]` on backend failure with no `db.json` fallback — which is *why* the July 9 pause blanked the whole store. Add graceful degradation.
+- **Payments (high):** still mocked; **tax** still 0. The store cannot transact.
+- **Real data for Dashboard + Orders + Account order history (high):** connect to Supabase; add order-status transitions.
+- **SEO (high/med):** no per-product `generateMetadata`; `sitemap.xml` / `robots.txt` 404; no OG/Twitter/JSON-LD/canonicals.
+- **Security headers (med):** add CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy (HSTS + nosniff present).
+- **Content/legal pages (med):** Privacy, Terms, Returns, Shipping, FAQ, Contact; real footer links; real store address/map.
+- **Two dead "Pokémon" links (bug):** hero (`app/page.tsx:74`) + footer (`components/Footer.tsx:38`) → fix to `?subCategory=TCG`.
+- **Singles definition (decision):** stop listing accessories as "singles."
+- **Ops (high):** keep Supabase awake (keep-alive/Pro) + uptime monitoring so the store doesn't silently go down again.
+
+## Verified live vs. still manual
+- **Verified live this pass:** storefront products + OOS enforcement, login, admin gate, and all six admin screens' real/mock state and controls.
+- **Not exercised (to avoid mutating production):** creating/deleting a real product, user, or order; a real checkout. These were verified locally earlier against the same code + DB.
+
+## Recommended next
+1. **Keep it up:** add a Supabase keep-alive + uptime monitor so the outage doesn't recur; add the `getProducts()` fallback so a pause degrades gracefully.
+2. **Make the admin honest:** wire Dashboard metrics, the Orders table (+ Fulfill status flow), and account order history to real data — the core data-integrity fix.
+3. **Bring Inventory to parity:** add search, pagination, and Add/Delete (reuse the Custom Inventory patterns).
+4. **Commerce:** Clover payments + real tax.
+5. **SEO + security-headers batch** and fix the two Pokémon links.
 
 ## Sources
-- Live browser walkthrough + HTTP/DNS probes + source review, verified by the `live-site-audit` workflow (15 agents, adversarially cross-checked).
-- Living plan: `MASTER_PLAN.md`. Prior snapshots: `AUDIT.md`, `PRODUCTION_AUDIT.md`.
+Authenticated browser walkthrough of the live site on July 11, 2026, plus source review. Prior: the July 9 outage findings (this file's earlier revision), `MASTER_PLAN.md`, `AUDIT.md`, `PRODUCTION_AUDIT.md`.

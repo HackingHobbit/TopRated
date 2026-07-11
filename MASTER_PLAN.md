@@ -10,9 +10,9 @@ This is the single source of truth for finishing the site: what's real vs. fille
 
 ## 0. Where the site actually stands today (updated June 21, 2026)
 
-> ### 🔴 LIVE STATUS (July 9, 2026): the store is DOWN
-> A live test found the Supabase backend host (`oiibvgnsqbbpjotgedxs.supabase.co`) returns **NXDOMAIN** — the project is paused or gone. The Netlify frontend is healthy, but the storefront shows **no products**, all PDPs 404, and auth/admin/checkout fail. Owner action: check the Supabase dashboard → **Restore** if paused, or recreate + re-migrate + re-push + re-wire env if deleted. Then add a keep-alive (free tier auto-pauses) or upgrade to Pro. Full detail: **`LIVE_TEST_REPORT.md`**.
-> Contributing code defect: `getProducts()` returns `[]` on backend failure with **no `db.json` fallback**, so an outage silently empties the whole catalog instead of degrading. Fix tracked below.
+> ### LIVE STATUS (July 11, 2026): RESTORED — store operational again
+> The Supabase backend was down July 9 (NXDOMAIN — free-tier auto-pause) and has since been **restored**. A full authenticated re-audit on July 11 confirms the storefront serves products, sign-in works, and all six admin screens are reachable. **Still true:** free tier will auto-pause again without a keep-alive (high-priority ops item below), and `getProducts()` still has **no `db.json` fallback**, so the next pause would again blank the whole catalog — fix tracked in Phase E. Full detail incl. the **admin functional + UX audit**: **`LIVE_TEST_REPORT.md`**.
+> Admin audit headline: Inventory / Custom Inventory / Customers / Users are real & functional; **Dashboard and Orders are still mock** (hardcoded metrics + dead Search/Export/Fulfill), and Inventory lacks Add/Delete + in-table search/pagination.
 
 **Real and live:**
 - Supabase Auth (email/password), real sessions, server-side admin gate, RLS at the database.
