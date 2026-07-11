@@ -1,0 +1,34 @@
+name: Supabase keep-alive
+
+# Free-tier Supabase projects auto-pause after ~1 week with no activity, which
+# takes the whole store down (see LIVE_TEST_REPORT.md, July 9 outage). This job
+# makes a tiny read request on a schedule so the project always looks active.
+#
+# NOTE: this can only PREVENT a pause while it keeps running — it cannot wake an
+# already-paused project (that needs a manual Restore in the dashboard). The key
+# below is the PUBLIC publishable (anon) key, which already ships in the browser
+# bundle, so committing it here exposes nothing new. Move it to an Actions secret
+# if you prefer.
+
+on:
+  schedule:
+    - cron: "17 13 * * *"   # daily at 13:17 UTC (odd minute = fewer GH scheduling delays)
+  workflow_dispatch: {}       # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST to keep the project active
+        run: |
+          URL="https://oiibvgnsqbbpjotgedxs.supabase.co"
+          KEY="sb_publishable_9pUjKwjHAw87GVoN-KD_Gg_0hGXQf0A"
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$URL/rest/v1/products?select=id&limit=1" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" --max-time 30)
+          echo "Supabase REST responded: HTTP $code"
+          if [ "$code" = "200" ]; then
+            echo "Keep-alive OK — project is active."
+          else
+            echo "::warning::Supabase returned HTTP $code — the project may be paused/unreachable. Restore it in the Supabase dashboard."
+          fi

@@ -281,7 +281,7 @@ Per §3 "Mobile responsiveness." ✅ Done (June 21): shop filters collapse to a 
 - Error tracking (Sentry) + analytics + uptime monitor.
 - Minor: drop `unoptimized` on the admin singles/PhotoUploader thumbnails now that `*.supabase.co` is allowlisted (storefront single photos already optimize); add the audit-log for admin user actions (§6); surface singles' grade/condition/gallery on the public PDP (§5 follow-up).
 - **Resilience (high — surfaced by the July 9 outage):** `getProducts()` returns `[]` on Supabase failure with no fallback, so a backend blip silently empties the whole store. Fall back to `db.json` (or render an explicit error/empty state) when Supabase is configured-but-unreachable.
-- **Ops (high):** free-tier Supabase auto-pauses → the site goes fully down (see LIVE_TEST_REPORT.md, July 9). Add a keep-alive (scheduled ping every few days) or move to Supabase Pro; consider an uptime monitor so an outage is noticed proactively.
+- **Ops (high):** free-tier Supabase auto-pauses → the site goes fully down (see LIVE_TEST_REPORT.md, July 9). ✅ **Keep-alive added** — `.github/workflows/supabase-keepalive.yml` pings Supabase daily so it never idles into a pause. Still recommended: an uptime monitor (proactive alert) and/or Supabase Pro (no auto-pause) for real launch. Note: the keep-alive prevents pausing but cannot wake an already-paused project.
 - **Order lifecycle:** orders persist as `pending` and nothing advances them — add the fulfillment state machine (ties to Phase B2 admin Orders).
 
 ---
