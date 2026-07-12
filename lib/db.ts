@@ -355,8 +355,8 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
   ] = await Promise.all([
     supabase
       .from('orders')
-      .select('order_number, status, total, created_at, shipping_address')
-      .order('created_at', { ascending: false })
+      .select('order_number, status, total, placed_at, shipping_address')
+      .order('placed_at', { ascending: false })
       .limit(200),
     supabase.from('products').select('id, is_out_of_stock'),
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -367,10 +367,10 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
     order_number: string;
     status: string | null;
     total: number | string;
-    created_at: string;
+    placed_at: string;
     shipping_address: { fullName?: string } | null;
   }>;
-  const todays = ords.filter((o) => new Date(o.created_at) >= startOfToday);
+  const todays = ords.filter((o) => new Date(o.placed_at) >= startOfToday);
   const salesToday =
     Math.round(todays.reduce((s, o) => s + (Number(o.total) || 0), 0) * 100) / 100;
 

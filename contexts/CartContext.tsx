@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Product } from '@/lib/types';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -22,13 +22,42 @@ interface CartContextType {
 }
 
 const PER_ITEM_LIMIT = 3;
+const CART_STORAGE_KEY = 'tr_cart';
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const { addToast } = useToast();
+
+  // Load the saved cart once on mount (client only). We start empty so the
+  // server-rendered and first client render match, then hydrate from storage.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CART_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(parsed)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCart(parsed);
+      }
+    } catch {
+      /* corrupt or unavailable storage — start with an empty cart */
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist on every change — but only after the initial load, so the empty
+  // starting state can't overwrite a saved cart.
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch {
+      /* ignore quota / private-mode errors */
+    }
+  }, [cart, hydrated]);
 
   const totalItems = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),

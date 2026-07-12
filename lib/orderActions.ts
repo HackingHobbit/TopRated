@@ -123,12 +123,15 @@ export async function placeOrder(
       .insert({
         order_number: number,
         customer_id: user?.id ?? null,
-        status: 'pending', // becomes 'processing' once real payment lands (A2)
+        // Payment succeeded (mock or live) by the time we reach here, so the
+        // order is paid and moves into fulfillment.
+        status: 'processing',
         subtotal,
         tax,
         shipping: shippingCost,
         total,
         shipping_address: shipping,
+        clover_order_id: charge.chargeId ?? null,
       })
       .select('id')
       .single();
