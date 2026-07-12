@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { getSupabaseAdmin } from './supabase/admin';
 import { getCurrentUser } from './supabase/server';
+import { getCloverClient } from './clover';
 
 const PER_ITEM_LIMIT = 3;
 const FREE_SHIPPING_THRESHOLD = 300;
@@ -33,6 +34,9 @@ export interface PlaceOrderResult {
   orderNumber?: string;
   total?: number;
   error?: string;
+  /** Clover charge id (mock_ch_… in phantom mode). */
+  chargeId?: string;
+  paymentMode?: 'mock' | 'live';
 }
 
 function orderNumber(): string {
@@ -100,6 +104,17 @@ export async function placeOrder(
     const user = await getCurrentUser();
     const number = orderNumber();
 
+    // Payment through the Clover abstraction: phantom (simulated) in mock mode,
+    // a real Ecommerce charge in live mode. Order creation is gated on success.
+    const clover = await getCloverClient();
+    const charge = await clover.createCharge({
+      amountCents: Math.round(total * 100),
+      orderNumber: number,
+    });
+    if (!charge.ok) {
+      return { ok: false, error: charge.error || 'Payment could not be processed.' };
+    }
+
     const { data: order, error: oErr } = await supabase
       .from('orders')
       .insert({
@@ -153,7 +168,13 @@ export async function placeOrder(
     revalidatePath('/account');
     revalidatePath('/admin');
     revalidatePath('/admin/orders');
-    return { ok: true, orderNumber: number, total };
+    return {
+      ok: true,
+      orderNumber: number,
+      total,
+      chargeId: charge.chargeId,
+      paymentMode: clover.mode,
+    };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Order failed.' };
   }

@@ -160,10 +160,13 @@ export default function CheckoutPage() {
               </div>
 
               <div className={styles.formSection}>
-                <h3>2. Payment Method (Mock)</h3>
+                <h3>2. Payment Method</h3>
                 <p className={styles.mockNotice}>
-                  Note: Real payment integration (Clover) will be implemented
-                  in Phase 5. Card details entered here are never stored.
+                  Payments run through the Clover integration. It&apos;s in{' '}
+                  <strong>phantom (mock) mode</strong> right now — orders are
+                  simulated and no card is charged. An admin can switch it to
+                  live Clover under <strong>Admin → Integrations</strong>. Card
+                  details entered here are never stored.
                 </p>
                 <div className={styles.inputGroup}>
                   <label htmlFor="cardNumber">Card Number</label>
