@@ -141,6 +141,7 @@ export default function SingleForm({
           value={f.images}
           onChange={(images) => set('images', images)}
           pathPrefix="singles"
+          searchQuery={f.name}
           disabled={isPending}
         />
         <label className={styles.checkRow}>

@@ -51,7 +51,18 @@ export default function Navbar() {
     if (isAuthenticated) {
       router.push('/account');
     } else {
-      router.push('/login');
+      // Bring the user back to where they were after signing in. Read the
+      // full path+query from location at click time so we don't have to pull
+      // useSearchParams into the Navbar. Never bounce back to an auth page.
+      const here =
+        typeof window !== 'undefined'
+          ? window.location.pathname + window.location.search
+          : '/';
+      const onAuthPage =
+        here.startsWith('/login') || here.startsWith('/signup');
+      router.push(
+        onAuthPage ? '/login' : `/login?redirect=${encodeURIComponent(here)}`
+      );
     }
     setIsMobileMenuOpen(false);
   };

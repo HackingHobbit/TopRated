@@ -56,9 +56,10 @@ function LoginForm() {
       setError(result.error ?? 'Sign in failed.');
       return;
     }
-    // Honor ?redirect= so admin-gated routes can bounce back to where they
-    // came from after a successful login.
-    const dest = searchParams.get('redirect') || '/account';
+    // Honor ?redirect= so we return to wherever the user was (set by the
+    // navbar sign-in and by admin-gated routes). With no redirect — e.g. they
+    // deep-linked straight to /login — default to home, not order history.
+    const dest = searchParams.get('redirect') || '/';
     router.push(dest);
   };
 

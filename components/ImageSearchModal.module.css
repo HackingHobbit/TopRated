@@ -1,0 +1,172 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100; /* above the product edit modal (z-index 1000) */
+  padding: 1rem;
+}
+
+.modal {
+  width: 100%;
+  max-width: 760px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #101219;
+  border: 1px solid var(--border-strong, #2a2b33);
+  border-radius: var(--radius-lg, 14px);
+  padding: 1.25rem 1.25rem 1rem;
+  color: var(--text-primary, #e7e7ea);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+.head h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.close {
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary, #9aa0aa);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.close:hover {
+  color: var(--text-primary, #fff);
+}
+
+.searchRow,
+.pasteRow {
+  display: flex;
+  gap: 0.5rem;
+}
+.searchRow {
+  margin-bottom: 0.5rem;
+}
+.pasteRow {
+  margin-top: 0.75rem;
+}
+.searchRow input,
+.pasteRow input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  background: #0a0b0f;
+  border: 1px solid var(--border-subtle, #2a2b33);
+  border-radius: var(--radius-sm, 8px);
+  color: var(--text-primary, #e7e7ea);
+  font: inherit;
+}
+.searchRow input:focus,
+.pasteRow input:focus {
+  outline: none;
+  border-color: var(--accent-red, #dc2626);
+}
+.searchRow button,
+.pasteRow button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-strong, #3a3b44);
+  background: #23252e;
+  color: var(--text-primary, #e7e7ea);
+  font-weight: 600;
+  cursor: pointer;
+}
+.searchRow button {
+  background: var(--accent-red, #dc2626);
+  border-color: var(--accent-red, #dc2626);
+  color: #fff;
+}
+.searchRow button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.pasteRow button:hover {
+  border-color: var(--accent-red, #dc2626);
+}
+
+.status,
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
+.status {
+  color: var(--text-secondary, #9aa0aa);
+}
+.error {
+  color: #f87171;
+}
+
+.grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.6rem;
+  padding: 0.25rem;
+  min-height: 120px;
+}
+
+.card {
+  position: relative;
+  padding: 0;
+  border: 2px solid var(--border-subtle, #2a2b33);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a0b0f;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.card:hover {
+  border-color: var(--border-strong, #3a3b44);
+}
+.card.sel {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px #22c55e55;
+}
+.card img {
+  width: 100%;
+  height: 130px;
+  object-fit: contain;
+  background: #17181f;
+  display: block;
+}
+.card .meta {
+  padding: 4px 6px;
+  font-size: 10px;
+  color: var(--text-secondary, #9aa0aa);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

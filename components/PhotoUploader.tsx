@@ -2,9 +2,10 @@
 
 import { useCallback, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Camera, ImagePlus, X, Star, Loader2 } from 'lucide-react';
+import { Camera, ImagePlus, X, Star, Loader2, Search } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { UploadedImage } from '@/lib/types';
+import ImageSearchModal from './ImageSearchModal';
 import styles from './PhotoUploader.module.css';
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
   onChange: (images: UploadedImage[]) => void;
   /** Storage path prefix, e.g. 'singles'. Files land at `${prefix}/<rand>.jpg`. */
   pathPrefix?: string;
+  /** Seeds the "Search for Image" box (usually the product name). */
+  searchQuery?: string;
   disabled?: boolean;
 }
 
@@ -33,11 +36,13 @@ export default function PhotoUploader({
   value,
   onChange,
   pathPrefix = 'uploads',
+  searchQuery = '',
   disabled = false,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
@@ -135,6 +140,14 @@ export default function PhotoUploader({
           >
             <Camera size={18} /> Take Photo
           </button>
+          <button
+            type="button"
+            className={styles.searchBtn}
+            onClick={() => setShowSearch(true)}
+            disabled={disabled || busy}
+          >
+            <Search size={18} /> Search for Image
+          </button>
         </div>
         {busy && (
           <p className={styles.status}>
@@ -206,6 +219,18 @@ export default function PhotoUploader({
             </li>
           ))}
         </ul>
+      )}
+
+      {showSearch && (
+        <ImageSearchModal
+          initialQuery={searchQuery}
+          pathPrefix={pathPrefix}
+          onPick={(img) => {
+            onChange([...value, img]);
+            setShowSearch(false);
+          }}
+          onClose={() => setShowSearch(false)}
+        />
       )}
     </div>
   );

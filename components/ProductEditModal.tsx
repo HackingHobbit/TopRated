@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { Search } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { updateProduct } from '@/lib/actions';
+import ImageSearchModal from './ImageSearchModal';
 import styles from './ProductEditModal.module.css';
 
 interface Props {
@@ -20,6 +22,7 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
     imageRepresentative: product.imageRepresentative ?? false
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +89,13 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
                 onChange={e => setFormData({...formData, image: e.target.value})}
                 required
               />
+              <button
+                type="button"
+                className={styles.searchImageBtn}
+                onClick={() => setShowSearch(true)}
+              >
+                <Search size={15} /> Search for Image
+              </button>
             </div>
           </div>
 
@@ -108,6 +118,18 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
             </button>
           </div>
         </form>
+
+        {showSearch && (
+          <ImageSearchModal
+            initialQuery={formData.name}
+            pathPrefix="enriched"
+            onPick={(img) => {
+              setFormData({ ...formData, image: img.url });
+              setShowSearch(false);
+            }}
+            onClose={() => setShowSearch(false)}
+          />
+        )}
       </div>
     </div>
   );

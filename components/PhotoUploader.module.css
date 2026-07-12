@@ -36,7 +36,8 @@
 }
 
 .uploadBtn,
-.cameraBtn {
+.cameraBtn,
+.searchBtn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -46,6 +47,21 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.searchBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+}
+
+.searchBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.searchBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .uploadBtn {

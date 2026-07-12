@@ -69,7 +69,31 @@
   gap: 1rem;
 }
 
-/* Checkbox + label on one line (overrides the full-width .formGroup input). */
+/* "Search for Image" affordance under the Image URL field. */
+.searchImageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.searchImageBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent-red);
+}
+
+/* Checkbox + label on one line (overrides the full-width .formGroup input).
+   Boxed with padding so it reads as its own control and isn't cramped against
+   the fields above and the action buttons below. */
 .checkLabel {
   flex-direction: row !important;
   align-items: flex-start;
@@ -78,6 +102,10 @@
   color: var(--text-secondary);
   line-height: 1.4;
   cursor: pointer;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
 }
 
 .checkLabel input {

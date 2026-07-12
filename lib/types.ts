@@ -55,6 +55,21 @@ export interface UploadedImage {
   path: string;
 }
 
+// One ranked image-search candidate returned by the admin "Search for Image"
+// tool (SearXNG-backed). Kept here (not in the 'use server' actions file, which
+// may only export functions) so both client and server can share the shape.
+export interface ImageCandidate {
+  url: string;
+  thumb: string;
+  page: string;
+  host: string;
+  resolution: string;
+  w: number;
+  h: number;
+  score: number;
+  engine: string;
+}
+
 // A user row for the admin user-management table (profiles + auth metadata).
 export interface AdminUser {
   id: string;
