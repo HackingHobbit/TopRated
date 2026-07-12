@@ -70,6 +70,20 @@ export interface ImageCandidate {
   engine: string;
 }
 
+// One order (with its line items) for a customer's own order history.
+export interface MyOrderItem {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+export interface MyOrder {
+  orderNumber: string;
+  placedAt: string;
+  status: string;
+  total: number;
+  items: MyOrderItem[];
+}
+
 // A user row for the admin user-management table (profiles + auth metadata).
 export interface AdminUser {
   id: string;

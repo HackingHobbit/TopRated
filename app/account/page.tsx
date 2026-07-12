@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWantList } from '@/contexts/WantListContext';
 import ProductCard from '@/components/ProductCard';
+import { getMyOrders } from '@/lib/orderActions';
+import type { MyOrder } from '@/lib/types';
 import styles from './page.module.css';
 
 type Tab = 'orders' | 'wantlist' | 'settings';
@@ -16,6 +18,8 @@ export default function Account() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<Tab>('orders');
+  const [orders, setOrders] = useState<MyOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
 
   // Only redirect once we've actually read the persisted auth state —
   // otherwise the first render kicks logged-in users to /login.
@@ -24,6 +28,17 @@ export default function Account() {
       router.push('/login');
     }
   }, [isAuthReady, isAuthenticated, router]);
+
+  // Load the signed-in customer's real orders (state is set async in .then,
+  // so this doesn't trip the set-state-in-effect rule).
+  useEffect(() => {
+    if (!isAuthReady || !isAuthenticated) return;
+    let cancelled = false;
+    getMyOrders()
+      .then((o) => { if (!cancelled) { setOrders(o); setOrdersLoading(false); } })
+      .catch(() => { if (!cancelled) setOrdersLoading(false); });
+    return () => { cancelled = true; };
+  }, [isAuthReady, isAuthenticated]);
 
   if (!isAuthReady) {
     return (
@@ -90,34 +105,56 @@ export default function Account() {
         {activeTab === 'orders' && (
           <>
             <h1 className={styles.pageTitle}>Order History</h1>
-            
-            <div className={`glass-panel ${styles.orderCard}`}>
-              <div className={styles.orderHeader}>
-                <div>
-                  <span className={styles.orderId}>Order #TR-10492</span>
-                  <span className={styles.date}>Placed on May 10, 2026</span>
-                </div>
-                <span className={styles.status}>Processing</span>
+
+            {ordersLoading ? (
+              <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                Loading orders…
               </div>
-              
-              <div className={styles.orderItems}>
-                <div className={styles.item}>
-                  <div className={styles.itemDetails}>
-                    <h4>Premium Hobby Box</h4>
-                    <p>Qty: 1</p>
+            ) : orders.length === 0 ? (
+              <div className="glass-panel" style={{ padding: '4rem', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-muted)' }}>You haven&apos;t placed any orders yet.</p>
+                <Link href="/shop" className="btn-primary" style={{ marginTop: '1rem', display: 'inline-block' }}>
+                  Browse Shop
+                </Link>
+              </div>
+            ) : (
+              orders.map((o) => (
+                <div key={o.orderNumber} className={`glass-panel ${styles.orderCard}`}>
+                  <div className={styles.orderHeader}>
+                    <div>
+                      <span className={styles.orderId}>Order #{o.orderNumber}</span>
+                      <span className={styles.date}>
+                        Placed on{' '}
+                        {new Date(o.placedAt).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                    <span className={styles.status}>
+                      {o.status.charAt(0).toUpperCase() + o.status.slice(1)}
+                    </span>
                   </div>
-                  <div className={styles.itemPrice}>$199.99</div>
+
+                  <div className={styles.orderItems}>
+                    {o.items.map((it, i) => (
+                      <div key={i} className={styles.item}>
+                        <div className={styles.itemDetails}>
+                          <h4>{it.name}</h4>
+                          <p>Qty: {it.quantity}</p>
+                        </div>
+                        <div className={styles.itemPrice}>${(it.unitPrice * it.quantity).toFixed(2)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={styles.orderFooter}>
+                    <div className={styles.total}>Total: ${o.total.toFixed(2)}</div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className={styles.orderFooter}>
-                <div className={styles.total}>Total: $215.49</div>
-                <div className={styles.cloverMock}>
-                  <p><strong>Payment Method:</strong> Clover Terminal (Mock)</p>
-                  <p className={styles.cloverNote}>Note: In production, this section will pull receipt data via the Clover API.</p>
-                </div>
-              </div>
-            </div>
+              ))
+            )}
           </>
         )}
 

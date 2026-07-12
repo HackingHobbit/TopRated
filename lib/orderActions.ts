@@ -9,7 +9,8 @@
 import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { getSupabaseAdmin } from './supabase/admin';
-import { getCurrentUser } from './supabase/server';
+import { getCurrentUser, getSupabaseServer } from './supabase/server';
+import type { MyOrder } from './types';
 import { getCloverClient } from './clover';
 import { assertAdmin } from './auth-guard';
 
@@ -221,6 +222,38 @@ export async function deleteDemoOrders(): Promise<{
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Failed.' };
   }
+}
+
+/** The signed-in customer's own orders (newest first), with line items.
+ *  RLS ("orders self select") restricts this to the caller's own orders. */
+export async function getMyOrders(): Promise<MyOrder[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const supabase = await getSupabaseServer();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('orders')
+    .select('order_number, status, total, placed_at, order_items(product_name, quantity, unit_price)')
+    .eq('customer_id', user.id)
+    .order('placed_at', { ascending: false });
+  if (error || !data) return [];
+  return (data as Array<{
+    order_number: string;
+    status: string;
+    total: number | string;
+    placed_at: string;
+    order_items: Array<{ product_name: string; quantity: number; unit_price: number | string }> | null;
+  }>).map((o) => ({
+    orderNumber: o.order_number,
+    status: o.status,
+    total: Number(o.total),
+    placedAt: o.placed_at,
+    items: (o.order_items ?? []).map((it) => ({
+      name: it.product_name,
+      quantity: it.quantity,
+      unitPrice: Number(it.unit_price),
+    })),
+  }));
 }
 
 function round2(n: number): number {
