@@ -1,15 +1,13 @@
 import Image from 'next/image';
 import styles from './page.module.css';
 
-// Owner cards on the About page. The first two reference the stylized
-// "trading card" portraits Joseph attached — drop the image files into
-// public/assets/ with the filenames below and they'll render automatically.
+// Owner cards on the About page — the three stylized "trading card" portraits
+// Joseph supplied. The image files live in public/assets/ (committed to the
+// repo so they render on the live Netlify build, not just locally):
 //
 //   public/assets/chula-badass.png   ← Chula Badass card
 //   public/assets/johnny-bravo.png   ← Johnny Bravo card
-//
-// The third image is one of the original placeholder JPGs from public/assets;
-// swap it out the same way (any path under /assets/* works).
+//   public/assets/tony-totes.png     ← Tony "Totes" card
 const OWNERS = [
   {
     id: 1,
@@ -29,11 +27,11 @@ const OWNERS = [
   },
   {
     id: 3,
-    name: 'The Operations Crew',
-    role: 'Logistics, Authentication, and Customer Care',
+    name: 'Tony "Totes"',
+    role: 'Founder · OG of the Trading Card Game',
     description:
-      'The behind-the-scenes team that authenticates every signed item, packs every order with care, and answers every question about your collection.',
-    image: '/assets/4226.JPG',
+      "The one who started it all — Founders Edition 01/01. Tony's been hauling totes of cardboard since before it was cool, and every box on the wall traces back to his collection. If it's graded, sorted, or shipped, Tony's had a hand in it.",
+    image: '/assets/tony-totes.png',
   },
 ];
 
