@@ -296,16 +296,13 @@ export async function searchImages(query: string): Promise<SearchResult> {
   const all = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 
   if (all.length === 0) {
-    const hasWebSource =
-      Boolean(process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_CX) ||
-      Boolean(process.env.EBAY_CLIENT_ID && process.env.EBAY_CLIENT_SECRET) ||
-      Boolean(process.env.SEARXNG_URL);
     return {
       ok: false,
-      error: hasWebSource
-        ? 'No images found — try a different search.'
-        : 'No image sources are configured yet. Add a Google or eBay key (see ' +
-          '.env.example), or run a local SearXNG, then try again.',
+      error:
+        'No matching images came back. Web image search runs through SearXNG ' +
+        'when you run the admin locally, plus the free card databases; on the ' +
+        'deployed site, add an eBay or Google key for full search. Try a ' +
+        'different search term — or paste an image URL below.',
     };
   }
   return { ok: true, query: q, candidates: rank(all) };

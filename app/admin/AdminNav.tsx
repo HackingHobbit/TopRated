@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import styles from './page.module.css';
 
 const LINKS = [
-  { href: '/admin', label: 'Dashboard' },
+  { href: '/admin', label: 'Daily Dashboard' },
   { href: '/admin/inventory', label: 'Inventory' },
   { href: '/admin/singles', label: 'Custom Inventory' },
   { href: '/admin/orders', label: 'Orders' },

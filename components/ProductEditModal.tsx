@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Info } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { updateProduct } from '@/lib/actions';
 import ImageSearchModal from './ImageSearchModal';
@@ -23,6 +23,7 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showUrl, setShowUrl] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,33 +71,59 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
             />
           </div>
 
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label>Price ($)</label>
-              <input 
-                type="number" 
-                step="0.01"
-                value={formData.price} 
-                onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                required
+          <div className={styles.formGroup}>
+            <label>Price ($)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.price}
+              onChange={e => setFormData({...formData, price: Number(e.target.value)})}
+              required
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Image</label>
+            <div className={styles.imageRow}>
+              {/* Arbitrary remote hosts — plain img (next/image would need every
+                  vendor domain whitelisted). Shows the actual current image. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className={styles.imagePreview}
+                src={formData.image}
+                alt={formData.name}
+                referrerPolicy="no-referrer"
+                onError={e => { (e.currentTarget as HTMLImageElement).style.opacity = '0.3'; }}
               />
+              <div className={styles.imageActions}>
+                <button
+                  type="button"
+                  className={styles.infoBtn}
+                  onClick={() => setShowUrl(v => !v)}
+                  aria-label="Show image link"
+                  aria-expanded={showUrl}
+                  title="Show / edit image link"
+                >
+                  <Info size={16} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.searchImageBtn}
+                  onClick={() => setShowSearch(true)}
+                >
+                  <Search size={15} /> Search for Image
+                </button>
+              </div>
             </div>
-            <div className={styles.formGroup}>
-              <label>Image URL</label>
+            {showUrl && (
               <input
                 type="url"
+                className={styles.urlInput}
                 value={formData.image}
                 onChange={e => setFormData({...formData, image: e.target.value})}
-                required
+                placeholder="https://…"
               />
-              <button
-                type="button"
-                className={styles.searchImageBtn}
-                onClick={() => setShowSearch(true)}
-              >
-                <Search size={15} /> Search for Image
-              </button>
-            </div>
+            )}
           </div>
 
           <div className={styles.formGroup}>

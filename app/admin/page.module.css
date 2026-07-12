@@ -302,3 +302,9 @@
   font-size: 0.85rem;
   color: var(--text-muted);
 }
+
+.emptyRow {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem !important;
+}

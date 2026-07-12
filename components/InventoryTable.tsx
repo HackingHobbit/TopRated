@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Product } from '@/lib/types';
 import { updateProduct } from '@/lib/actions';
+import { productType, TYPE_LABELS } from '@/lib/productFacets';
 import ProductEditModal from './ProductEditModal';
 import styles from './InventoryTable.module.css';
 
@@ -10,17 +11,41 @@ export default function InventoryTable({ initialProducts }: { initialProducts: P
   const [products, setProducts] = useState(initialProducts);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('All');
+  const [type, setType] = useState('All');
+
+  const categories = useMemo(
+    () => ['All', ...Array.from(new Set(products.map((p) => p.category))).sort()],
+    [products]
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products.filter((p) => {
+      if (category !== 'All' && p.category !== category) return false;
+      if (type !== 'All' && productType(p) !== type) return false;
+      if (
+        q &&
+        !(
+          p.name.toLowerCase().includes(q) ||
+          p.subCategory.toLowerCase().includes(q) ||
+          p.id.toLowerCase().includes(q)
+        )
+      )
+        return false;
+      return true;
+    });
+  }, [products, query, category, type]);
 
   const toggleFlag = async (id: string, flag: keyof Product) => {
     setLoadingId(id);
     try {
-      const product = products.find(p => p.id === id);
+      const product = products.find((p) => p.id === id);
       if (!product) return;
-      
       const newValue = !product[flag];
       const updatedProduct = await updateProduct(id, { [flag]: newValue });
-      
-      setProducts(products.map(p => p.id === id ? updatedProduct : p));
+      setProducts(products.map((p) => (p.id === id ? updatedProduct : p)));
     } catch (err) {
       console.error(err);
       alert('Failed to update product flag.');
@@ -31,6 +56,38 @@ export default function InventoryTable({ initialProducts }: { initialProducts: P
 
   return (
     <div className={styles.tableWrapper}>
+      <div className={styles.filters}>
+        <input
+          className={styles.search}
+          placeholder="Search by name, subcategory, or ID…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <select className={styles.select} value={category} onChange={(e) => setCategory(e.target.value)}>
+          {categories.map((c) => (
+            <option key={c} value={c}>{c === 'All' ? 'All categories' : c}</option>
+          ))}
+        </select>
+        <select className={styles.select} value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="All">All types</option>
+          <option value="sealed">{TYPE_LABELS.sealed}</option>
+          <option value="single">{TYPE_LABELS.single}</option>
+          <option value="supplies">{TYPE_LABELS.supplies}</option>
+        </select>
+        <span className={styles.count}>
+          {filtered.length} of {products.length}
+        </span>
+        {(query || category !== 'All' || type !== 'All') && (
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => { setQuery(''); setCategory('All'); setType('All'); }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       <table className={styles.table}>
         <thead>
           <tr>
@@ -46,7 +103,7 @@ export default function InventoryTable({ initialProducts }: { initialProducts: P
           </tr>
         </thead>
         <tbody>
-          {products.map(product => (
+          {filtered.map((product) => (
             <tr key={product.id} className={loadingId === product.id ? styles.loading : ''}>
               <td>{product.name}</td>
               <td>{product.category}</td>
@@ -79,14 +136,20 @@ export default function InventoryTable({ initialProducts }: { initialProducts: P
               </td>
             </tr>
           ))}
+          {filtered.length === 0 && (
+            <tr>
+              <td colSpan={9} className={styles.empty}>No products match these filters.</td>
+            </tr>
+          )}
         </tbody>
       </table>
+
       {editingProduct && (
-        <ProductEditModal 
+        <ProductEditModal
           product={editingProduct}
           onClose={() => setEditingProduct(null)}
           onSave={(updated) => {
-            setProducts(products.map(p => p.id === updated.id ? updated : p));
+            setProducts(products.map((p) => (p.id === updated.id ? updated : p)));
             setEditingProduct(null);
           }}
         />

@@ -91,28 +91,85 @@
   border-color: var(--accent-red);
 }
 
-/* Checkbox + label on one line (overrides the full-width .formGroup input).
-   Boxed with padding so it reads as its own control and isn't cramped against
-   the fields above and the action buttons below. */
+/* Checkbox + label on one line. display:flex is what actually makes the gap
+   between the box and its text work (without it, flex-direction/gap no-op and
+   the checkbox sits flush against the text). */
 .checkLabel {
-  flex-direction: row !important;
+  display: flex;
+  flex-direction: row;
   align-items: flex-start;
-  gap: 0.6rem !important;
+  gap: 0.6rem;
   font-weight: 500 !important;
   color: var(--text-secondary);
   line-height: 1.4;
   cursor: pointer;
-  padding: 0.85rem 1rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
 }
 
 .checkLabel input {
   width: auto !important;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
   flex-shrink: 0;
   accent-color: var(--accent-red);
+}
+
+/* Image preview + actions (info link toggle + Search for Image). */
+.imageRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.imagePreview {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.imageActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.infoBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.infoBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-red);
+}
+
+.urlInput {
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.urlInput:focus {
+  outline: none;
+  border-color: var(--accent-red);
 }
 
 .actions {

@@ -306,6 +306,75 @@ export const getCustomers = cache(async (): Promise<CustomerRow[]> => {
   });
 });
 
+export interface DashboardStats {
+  salesToday: number;
+  ordersToday: number;
+  outOfStock: number;
+  customers: number;
+  recentOrders: Array<{
+    orderNumber: string;
+    customer: string;
+    status: string;
+    total: number;
+  }>;
+}
+
+/** Live figures for the admin Daily Dashboard (Supabase only). */
+export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
+  const empty: DashboardStats = {
+    salesToday: 0,
+    ordersToday: 0,
+    outOfStock: 0,
+    customers: 0,
+    recentOrders: [],
+  };
+  if (!supabaseConfigured()) return empty;
+  const supabase = await getSupabaseServer();
+  if (!supabase) return empty;
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const [{ data: orders }, { data: products }, { count: customerCount }] =
+    await Promise.all([
+      supabase
+        .from('orders')
+        .select('order_number, status, total, created_at, shipping_address')
+        .order('created_at', { ascending: false })
+        .limit(200),
+      supabase.from('products').select('id, is_out_of_stock'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    ]);
+
+  const ords = (orders ?? []) as Array<{
+    order_number: string;
+    status: string | null;
+    total: number | string;
+    created_at: string;
+    shipping_address: { fullName?: string } | null;
+  }>;
+  const todays = ords.filter((o) => new Date(o.created_at) >= startOfToday);
+  const salesToday =
+    Math.round(todays.reduce((s, o) => s + (Number(o.total) || 0), 0) * 100) / 100;
+
+  // Use the admin-managed out-of-stock flag; seeded quantities aren't reliable.
+  const outOfStock = ((products ?? []) as Array<{ is_out_of_stock: boolean }>)
+    .filter((p) => p.is_out_of_stock).length;
+
+  return {
+    salesToday,
+    ordersToday: todays.length,
+    outOfStock,
+    customers: customerCount ?? 0,
+    recentOrders: ords.slice(0, 6).map((o) => ({
+      orderNumber: o.order_number,
+      customer: o.shipping_address?.fullName || 'Guest',
+      status: o.status || 'pending',
+      total: Number(o.total) || 0,
+    })),
+  };
+});
+
 /** One single with its detail row and ordered images, for the edit screen. */
 export const getSingleWithDetails = cache(
   async (id: string): Promise<SingleWithDetails | null> => {
