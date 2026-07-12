@@ -1,13 +1,12 @@
 'use client';
 
 // "Search for Image" modal — the same find-and-pick flow as the review tool,
-// embedded in the product editors. Runs an admin-only server search (local
-// SearXNG) and re-hosts the chosen image into Supabase before handing it back.
-// Works when the admin is run locally with SearXNG up; on the deployed site the
-// search returns a friendly "run locally" message.
+// embedded in the product editors. Runs the admin-only aggregate image search
+// and re-hosts the chosen image into Supabase before handing it back. Includes
+// a zoom lightbox so you can inspect a candidate at full size before picking.
 
 import { useCallback, useEffect, useState } from 'react';
-import { Search, X, Loader2 } from 'lucide-react';
+import { Search, X, Loader2, ZoomIn, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { searchImages, importImageFromUrl } from '@/lib/imageSearchActions';
 import type { ImageCandidate } from '@/lib/types';
 import styles from './ImageSearchModal.module.css';
@@ -33,6 +32,10 @@ export default function ImageSearchModal({
   const [selected, setSelected] = useState<string | null>(null);
   const [paste, setPaste] = useState('');
   const [importing, setImporting] = useState(false);
+  // Zoom lightbox
+  const [zoomIndex, setZoomIndex] = useState<number | null>(null);
+  const [zoom2x, setZoom2x] = useState(false);
+  const [fullLoaded, setFullLoaded] = useState(false);
 
   const runSearch = useCallback(async (q: string) => {
     if (!q.trim()) return;
@@ -58,6 +61,45 @@ export default function ImageSearchModal({
     runSearch(initialQuery);
   }, [initialQuery, runSearch]);
 
+  // Progressive load for the lightbox: show the (cached) thumbnail instantly,
+  // swap in the full-res image once it finishes loading in the background.
+  useEffect(() => {
+    if (zoomIndex === null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFullLoaded(false);
+    const c = candidates[zoomIndex];
+    if (!c || !c.url || c.url === c.thumb) {
+      setFullLoaded(true);
+      return;
+    }
+    const img = new window.Image();
+    img.onload = () => setFullLoaded(true);
+    img.src = c.url;
+    return () => {
+      img.onload = null;
+    };
+  }, [zoomIndex, candidates]);
+
+  const closeZoom = () => {
+    setZoomIndex(null);
+    setZoom2x(false);
+  };
+  const zoomNav = (d: number) =>
+    setZoomIndex((i) => (i === null ? i : (i + d + candidates.length) % candidates.length));
+
+  // Keyboard controls while the lightbox is open.
+  useEffect(() => {
+    if (zoomIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeZoom();
+      else if (e.key === 'ArrowLeft') zoomNav(-1);
+      else if (e.key === 'ArrowRight') zoomNav(1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoomIndex, candidates.length]);
+
   const addPasted = () => {
     const u = paste.trim();
     if (!/^https?:\/\//i.test(u)) {
@@ -79,11 +121,10 @@ export default function ImageSearchModal({
     setError(null);
   };
 
-  const useSelected = async () => {
-    if (!selected) return;
+  const importAndPick = async (url: string) => {
     setImporting(true);
     setError(null);
-    const res = await importImageFromUrl(selected, pathPrefix);
+    const res = await importImageFromUrl(url, pathPrefix);
     setImporting(false);
     if (!res.ok || !res.image) {
       setError(res.error ?? 'Could not import that image — try another.');
@@ -91,6 +132,8 @@ export default function ImageSearchModal({
     }
     onPick(res.image);
   };
+
+  const zoomed = zoomIndex !== null ? candidates[zoomIndex] : null;
 
   return (
     <div
@@ -133,14 +176,34 @@ export default function ImageSearchModal({
         {error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.grid}>
-          {candidates.map((c) => (
-            <button
-              type="button"
+          {candidates.map((c, i) => (
+            <div
               key={c.url}
+              role="button"
+              tabIndex={0}
               className={`${styles.card} ${selected === c.url ? styles.sel : ''}`}
               onClick={() => setSelected(c.url)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelected(c.url);
+                }
+              }}
               title={c.page}
             >
+              {/* Zoom — opens the lightbox without selecting. */}
+              <button
+                type="button"
+                className={styles.zoomBtn}
+                title="Zoom"
+                aria-label="Zoom image"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setZoomIndex(i);
+                }}
+              >
+                <ZoomIn size={15} />
+              </button>
               {/* Arbitrary remote hosts — a plain img is correct here; next/image
                   would need every vendor domain whitelisted in remotePatterns. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -148,9 +211,6 @@ export default function ImageSearchModal({
                 src={c.thumb || c.url}
                 alt=""
                 loading="lazy"
-                // Bing/Google thumbnail CDNs 403 when a cross-origin referrer
-                // is sent; suppress it so the previews actually render. Fall
-                // back to the full image if the thumbnail still fails.
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   const img = e.currentTarget as HTMLImageElement;
@@ -165,7 +225,7 @@ export default function ImageSearchModal({
                 {c.host || 'source'}
                 {c.resolution ? ` · ${c.resolution}` : ''}
               </span>
-            </button>
+            </div>
           ))}
         </div>
 
@@ -193,13 +253,69 @@ export default function ImageSearchModal({
           <button
             type="button"
             className="btn-primary"
-            onClick={useSelected}
+            onClick={() => selected && importAndPick(selected)}
             disabled={!selected || importing}
           >
             {importing ? 'Adding…' : 'Use this image'}
           </button>
         </div>
       </div>
+
+      {/* Zoom lightbox */}
+      {zoomed && (
+        <div
+          className={styles.lb}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeZoom();
+          }}
+        >
+          <div className={styles.lbBar}>
+            <span className={styles.lbInfo}>
+              {zoomIndex! + 1}/{candidates.length}
+              {zoomed.host ? ` · ${zoomed.host}` : ''}
+              {zoomed.resolution ? ` · ${zoomed.resolution}` : ''}
+              {!fullLoaded && zoomed.url !== zoomed.thumb && (
+                <span className={styles.lbLoad}> · loading full-res…</span>
+              )}
+            </span>
+            <a href={zoomed.page || zoomed.url} target="_blank" rel="noopener noreferrer" className={styles.lbSource}>
+              source <ExternalLink size={13} />
+            </a>
+            <span className={styles.lbSpacer} />
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => importAndPick(zoomed.url)}
+              disabled={importing}
+            >
+              {importing ? 'Adding…' : 'Use this image'}
+            </button>
+            <button type="button" className={styles.lbClose} onClick={closeZoom} aria-label="Close zoom">
+              <X size={20} />
+            </button>
+          </div>
+          {candidates.length > 1 && (
+            <button type="button" className={`${styles.lbNav} ${styles.lbPrev}`} onClick={() => zoomNav(-1)} aria-label="Previous">
+              <ChevronLeft size={28} />
+            </button>
+          )}
+          <div className={styles.lbStage}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className={`${styles.lbImg} ${zoom2x ? styles.z2 : ''}`}
+              src={fullLoaded ? zoomed.url : zoomed.thumb || zoomed.url}
+              alt=""
+              referrerPolicy="no-referrer"
+              onClick={() => setZoom2x((z) => !z)}
+            />
+          </div>
+          {candidates.length > 1 && (
+            <button type="button" className={`${styles.lbNav} ${styles.lbNext}`} onClick={() => zoomNav(1)} aria-label="Next">
+              <ChevronRight size={28} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
