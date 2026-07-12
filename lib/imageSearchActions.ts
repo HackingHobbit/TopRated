@@ -75,6 +75,7 @@ function cand(c: CandInput): ImageCandidate {
   return { ...c, score: score(c) };
 }
 
+
 // ---------------------------------------------------------------- adapters
 // Each adapter NEVER throws — it returns [] on missing config / error / no
 // match, so one flaky source can't break the aggregate search.
@@ -115,7 +116,7 @@ async function fromDuckDuckGo(q: string): Promise<ImageCandidate[]> {
   try {
     const tokenRes = await fetch(
       `https://duckduckgo.com/?q=${encodeURIComponent(q)}&iax=images&ia=images`,
-      { headers: { 'User-Agent': UA, Accept: 'text/html' }, signal: AbortSignal.timeout(10_000), cache: 'no-store' }
+      { headers: { 'User-Agent': UA, Accept: 'text/html' }, signal: AbortSignal.timeout(5_000), cache: 'no-store' }
     );
     if (!tokenRes.ok) return [];
     const html = await tokenRes.text();
@@ -125,7 +126,7 @@ async function fromDuckDuckGo(q: string): Promise<ImageCandidate[]> {
       `https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(q)}&vqd=${m[1]}&f=,,,&p=1`,
       {
         headers: { 'User-Agent': UA, Accept: 'application/json', Referer: 'https://duckduckgo.com/' },
-        signal: AbortSignal.timeout(10_000),
+        signal: AbortSignal.timeout(5_000),
         cache: 'no-store',
       }
     );
@@ -332,11 +333,21 @@ export async function searchImages(query: string): Promise<SearchResult> {
   const q = query.trim();
   if (!q) return { ok: false, error: 'Enter something to search for.' };
 
-  const results = await Promise.allSettled([
+  // Collect results as each source resolves, but never wait longer than the
+  // overall deadline — so a slow/rate-limited source (e.g. DuckDuckGo) can't
+  // hold up the fast ones (SearXNG, card APIs). We return whatever has arrived.
+  const OVERALL_MS = 4500;
+  const all: ImageCandidate[] = [];
+  const jobs = [
     fromSearxng(q), fromDuckDuckGo(q), fromGoogle(q), fromEbay(q),
     fromScryfall(q), fromPokemon(q), fromYgo(q),
+  ].map((p) =>
+    p.then((r) => { if (Array.isArray(r)) all.push(...r); }).catch(() => {})
+  );
+  await Promise.race([
+    Promise.allSettled(jobs),
+    new Promise((res) => setTimeout(res, OVERALL_MS)),
   ]);
-  const all = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 
   if (all.length === 0) {
     return {
