@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top Rated — Admin Manual</title>
+<style>
+  @page {
+    size: Letter;
+    margin: 20mm 18mm 18mm 18mm;
+    @bottom-center { content: counter(page); }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #1c2430;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* ---- Palette ---- */
+  :root {
+    --navy: #16233b;
+    --navy2: #22344f;
+    --red: #d12b3a;
+    --ink: #1c2430;
+    --muted: #5c6675;
+    --line: #d9dee6;
+    --soft: #f4f6f9;
+    --soft2: #eef1f6;
+    --green: #1f8a54;
+    --amber: #b6801f;
+  }
+
+  h1, h2, h3, h4 { color: var(--navy); line-height: 1.25; }
+  h2 { font-size: 17pt; margin: 0 0 2mm; border-bottom: 2px solid var(--red); padding-bottom: 2mm; }
+  h3 { font-size: 12.5pt; margin: 6mm 0 1.5mm; }
+  h4 { font-size: 10.8pt; margin: 4mm 0 1mm; color: var(--navy2); }
+  p { margin: 0 0 2.4mm; }
+  a { color: var(--red); text-decoration: none; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 9pt;
+    background: var(--soft2);
+    padding: 0.5mm 1.4mm;
+    border-radius: 2px;
+    color: #384357;
+  }
+  strong { color: #101826; }
+
+  /* ---- Cover ---- */
+  .cover {
+    height: 246mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    page-break-after: always;
+    background: linear-gradient(160deg, #16233b 0%, #22344f 55%, #2c1a20 100%);
+    color: #fff;
+    margin: -20mm -18mm 0 -18mm;
+    padding: 30mm 22mm;
+  }
+  .cover .kicker {
+    letter-spacing: 3px; text-transform: uppercase; font-size: 10pt;
+    color: #ff8f9a; font-weight: 700;
+  }
+  .cover h1 {
+    color: #fff; font-size: 40pt; margin: 6mm 0 3mm; line-height: 1.05; letter-spacing: -0.5px;
+  }
+  .cover .sub { font-size: 14pt; color: #cdd6e4; font-weight: 400; max-width: 130mm; }
+  .cover .pill {
+    display: inline-block; background: var(--red); color: #fff; font-weight: 700;
+    font-size: 9pt; letter-spacing: 2px; padding: 1.5mm 4mm; border-radius: 3px; text-transform: uppercase;
+  }
+  .cover .meta { font-size: 10pt; color: #aab6c9; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 5mm; }
+  .cover .meta strong { color: #fff; }
+
+  /* ---- Layout helpers ---- */
+  section.chapter { page-break-before: always; }
+  .lead { font-size: 11.5pt; color: var(--muted); margin-bottom: 4mm; }
+
+  .callout {
+    border-left: 3px solid var(--navy2);
+    background: var(--soft);
+    padding: 3mm 4mm; margin: 3mm 0; border-radius: 0 3px 3px 0;
+    font-size: 9.8pt;
+  }
+  .callout.tip { border-color: var(--green); background: #eef8f1; }
+  .callout.warn { border-color: var(--amber); background: #fdf6e7; }
+  .callout.note { border-color: var(--red); background: #fdeef0; }
+  .callout .lbl { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 8pt; display: block; margin-bottom: 1mm; }
+  .callout.tip .lbl { color: var(--green); }
+  .callout.warn .lbl { color: var(--amber); }
+  .callout.note .lbl { color: var(--red); }
+  .callout.plain .lbl { color: var(--navy2); }
+
+  table.ref {
+    width: 100%; border-collapse: collapse; margin: 2.5mm 0 3mm; font-size: 9.6pt;
+  }
+  table.ref th {
+    background: var(--navy); color: #fff; text-align: left; padding: 2mm 3mm; font-weight: 600;
+  }
+  table.ref td { padding: 2mm 3mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.ref tr:nth-child(even) td { background: var(--soft); }
+  table.ref td:first-child { font-weight: 600; color: var(--navy2); white-space: nowrap; }
+
+  ol.steps { margin: 2mm 0 3mm; padding-left: 6mm; }
+  ol.steps li { margin-bottom: 1.6mm; }
+  ul.tight { margin: 1mm 0 3mm; padding-left: 5mm; }
+  ul.tight li { margin-bottom: 1.2mm; }
+
+  .tag {
+    display: inline-block; font-size: 7.6pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 0.6mm 2mm; border-radius: 3px; vertical-align: middle;
+  }
+  .tag.real { background: #dff2e7; color: var(--green); }
+  .tag.mock { background: #fdeef0; color: var(--red); }
+  .tag.partial { background: #fbf1dc; color: var(--amber); }
+
+  /* ---- UI mock ("wireframe") blocks ---- */
+  .ui {
+    border: 1px solid var(--line); border-radius: 5px; overflow: hidden; margin: 3mm 0;
+    font-size: 8.6pt; background: #fff;
+  }
+  .ui .bar { background: var(--navy); color: #fff; padding: 2mm 3mm; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .ui .bar .adminpill { background: var(--red); font-size: 7pt; padding: 0.5mm 2mm; border-radius: 3px; letter-spacing: 1px; }
+  .ui .body { display: flex; }
+  .ui .side { width: 34mm; background: var(--soft2); border-right: 1px solid var(--line); padding: 2mm; }
+  .ui .side .item { padding: 1.4mm 2mm; border-radius: 3px; margin-bottom: 0.6mm; color: var(--navy2); }
+  .ui .side .item.on { background: var(--red); color: #fff; font-weight: 600; }
+  .ui .main { flex: 1; padding: 3mm; }
+  .ui .cardrow { display: flex; gap: 2mm; margin-bottom: 2.5mm; }
+  .ui .metric { flex: 1; border: 1px solid var(--line); border-radius: 4px; padding: 2mm; }
+  .ui .metric .v { font-size: 13pt; font-weight: 700; color: var(--navy); }
+  .ui .metric .k { color: var(--muted); font-size: 7.6pt; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ui table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  .ui table th { text-align: left; color: var(--muted); border-bottom: 1px solid var(--line); padding: 1.2mm; font-weight: 600; }
+  .ui table td { padding: 1.2mm; border-bottom: 1px solid var(--soft2); }
+  .ui .btn { display: inline-block; background: var(--red); color: #fff; padding: 0.8mm 2.5mm; border-radius: 3px; font-size: 7.6pt; font-weight: 600; }
+  .ui .btn.ghost { background: #fff; color: var(--navy2); border: 1px solid var(--line); }
+  .ui .toggle-on { background: var(--green); color:#fff; padding: 0.4mm 1.8mm; border-radius: 3px; font-size:7pt; font-weight:700; }
+  .ui .toggle-off { background: #e6e9ef; color: var(--muted); padding: 0.4mm 1.8mm; border-radius: 3px; font-size:7pt; font-weight:700; }
+
+  /* ---- TOC ---- */
+  .toc { page-break-after: always; }
+  .toc h2 { border: none; }
+  .toc ol { list-style: none; counter-reset: c; padding: 0; margin-top: 4mm; }
+  .toc li { counter-increment: c; display: flex; align-items: baseline; padding: 2mm 0; border-bottom: 1px dotted var(--line); font-size: 11pt; }
+  .toc li::before { content: counter(c); color: var(--red); font-weight: 700; width: 8mm; }
+  .toc li .t { flex: 1; color: var(--navy); font-weight: 600; }
+  .toc li .d { color: var(--muted); font-size: 9pt; font-weight: 400; }
+
+  .footer-note { margin-top: 6mm; padding-top: 3mm; border-top: 1px solid var(--line); font-size: 8.6pt; color: var(--muted); }
+  .kv { display: grid; grid-template-columns: 40mm 1fr; gap: 1mm 4mm; font-size: 9.8pt; margin: 2mm 0; }
+  .kv .k { font-weight: 600; color: var(--navy2); }
+  .no-break { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <div>
+    <span class="pill">Admin Portal</span>
+    <div class="kicker" style="margin-top:14mm;">Top&nbsp;Rated Card Company</div>
+    <h1>Administrator's<br>Manual</h1>
+    <p class="sub">A complete, screen-by-screen guide to running the store from the admin portal — inventory, singles, orders, customers, staff accounts, and payment setup.</p>
+  </div>
+  <div class="meta">
+    <p><strong>Site:</strong> topratedcc.netlify.app/admin &nbsp;·&nbsp; <strong>Audience:</strong> Store owner &amp; staff (admin role)</p>
+    <p><strong>Version:</strong> Reflects the deployed build as of July&nbsp;12,&nbsp;2026 &nbsp;·&nbsp; <strong>Portal sections:</strong> 7</p>
+  </div>
+</div>
+
+<!-- ==================== TOC ==================== -->
+<div class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span class="t">Getting Started</span><span class="d">Signing in, roles, and finding your way around</span></li>
+    <li><span class="t">Daily Dashboard</span><span class="d">Today's sales, orders, stock, and recent activity</span></li>
+    <li><span class="t">Inventory</span><span class="d">The main catalog — search, flags, prices, editing</span></li>
+    <li><span class="t">Custom Inventory (Singles)</span><span class="d">Listing individual cards with photos</span></li>
+    <li><span class="t">Orders</span><span class="d">The order management screen</span></li>
+    <li><span class="t">Customers</span><span class="d">The customer directory and loyalty tiers</span></li>
+    <li><span class="t">Users &amp; Staff</span><span class="d">Creating accounts and managing roles</span></li>
+    <li><span class="t">Integrations (Clover Payments)</span><span class="d">Connecting the store to Clover</span></li>
+    <li><span class="t">Quick Reference &amp; Common Tasks</span><span class="d">"How do I…" at a glance</span></li>
+    <li><span class="t">Troubleshooting &amp; Glossary</span><span class="d">Fixes, definitions, and appendices</span></li>
+  </ol>
+  <div class="footer-note">
+    <strong>A note on this edition.</strong> Throughout the manual, each screen is marked
+    <span class="tag real">Live data</span> (wired to the real store database),
+    <span class="tag partial">Partial</span> (works, with gaps), or
+    <span class="tag mock">Preview</span> (sample data / controls not yet active), so you always
+    know whether what you see is real.
+  </div>
+</div>
+
+<!-- ==================== 1. GETTING STARTED ==================== -->
+<section class="chapter">
+  <h2>1 &nbsp;Getting Started</h2>
+  <p class="lead">The admin portal is where you run the store: manage stock and prices, list individual cards, review customers and orders, add staff, and connect payments. It lives at <code>/admin</code> and is visible only to accounts with the <strong>admin</strong> role.</p>
+
+  <h3>1.1 &nbsp;Signing in</h3>
+  <ol class="steps">
+    <li>Go to the store and open <strong>Sign In</strong> (the <code>/login</code> page).</li>
+    <li>Enter the email and password for your <strong>admin</strong> account.</li>
+    <li>Once signed in, an <strong>Admin</strong> button (with a dashboard icon) appears in the top navigation bar. Click it to enter the portal.</li>
+  </ol>
+  <div class="callout note">
+    <span class="lbl">Access is enforced on the server</span>
+    You must be both <strong>signed in</strong> and an <strong>admin</strong> to see any admin page.
+    Visitors who aren't logged in are sent to the sign-in page (and returned to <code>/admin</code>
+    afterwards); signed-in customers who aren't admins are redirected to their account page.
+    The "Admin" button in the top bar simply doesn't appear for non-admins.
+  </div>
+
+  <h3>1.2 &nbsp;Understanding roles</h3>
+  <table class="ref">
+    <tr><th style="width:28mm;">Role</th><th>What it can do</th></tr>
+    <tr><td>Admin</td><td>Full access to the admin portal and every screen in this manual. This is the role for you and your staff.</td></tr>
+    <tr><td>Customer</td><td>A normal shopper account. Can browse, order, and see their own account — but never the admin portal.</td></tr>
+  </table>
+  <p>You promote or demote accounts between these two roles on the <strong>Users</strong> screen (Section&nbsp;7).</p>
+
+  <h3>1.3 &nbsp;The portal at a glance</h3>
+  <p>Every admin screen shares the same layout: a fixed <strong>sidebar</strong> on the left (titled "Admin Portal") and your content on the right. The section you're currently viewing is highlighted in red. A red <strong>ADMIN</strong> marker in the top bar reminds you that you're working in the back office, not the storefront.</p>
+
+  <div class="ui no-break">
+    <div class="bar"><span>Top Rated</span><span class="adminpill">ADMIN</span></div>
+    <div class="body">
+      <div class="side">
+        <div class="item on">Daily Dashboard</div>
+        <div class="item">Inventory</div>
+        <div class="item">Custom Inventory</div>
+        <div class="item">Orders</div>
+        <div class="item">Customers</div>
+        <div class="item">Users</div>
+        <div class="item">Integrations</div>
+      </div>
+      <div class="main">
+        <div class="cardrow">
+          <div class="metric"><div class="k">Sales Today</div><div class="v">$—</div></div>
+          <div class="metric"><div class="k">Orders Today</div><div class="v">—</div></div>
+          <div class="metric"><div class="k">Out of Stock</div><div class="v">—</div></div>
+        </div>
+        <div style="color:var(--muted);font-size:8pt;">Content area — changes with the section you pick on the left.</div>
+      </div>
+    </div>
+  </div>
+
+  <h4>The seven sections</h4>
+  <table class="ref">
+    <tr><th style="width:42mm;">Sidebar item</th><th>Purpose</th></tr>
+    <tr><td>Daily Dashboard</td><td>Your morning snapshot — sales, orders, stock, and recent activity.</td></tr>
+    <tr><td>Inventory</td><td>The full product catalog: search, set store flags, edit names/prices/images.</td></tr>
+    <tr><td>Custom Inventory</td><td>List and manage individual single cards, with photos.</td></tr>
+    <tr><td>Orders</td><td>The order-management screen.</td></tr>
+    <tr><td>Customers</td><td>A read-only directory of everyone who has an account, with loyalty tiers.</td></tr>
+    <tr><td>Users</td><td>Create, edit, and remove accounts; change roles; reset passwords.</td></tr>
+    <tr><td>Integrations</td><td>Connect the store to Clover for card payments.</td></tr>
+  </table>
+
+  <div class="callout tip">
+    <span class="lbl">Works on your phone</span>
+    The portal is built to be used from a phone as well as a desktop — which matters most when
+    photographing and listing single cards (Section&nbsp;4). On a narrow screen the layout stacks so
+    everything stays reachable.
+  </div>
+</section>
+
+<!-- ==================== 2. DASHBOARD ==================== -->
+<section class="chapter">
+  <h2>2 &nbsp;Daily Dashboard <span class="tag real">Live data</span></h2>
+  <p class="lead">The landing screen. It shows today's date and four headline numbers pulled from the real store database, followed by your most recent order activity.</p>
+
+  <h3>2.1 &nbsp;The four metric cards</h3>
+  <table class="ref">
+    <tr><th style="width:34mm;">Card</th><th>What it counts</th></tr>
+    <tr><td>Sales Today</td><td>The total dollar value of all orders placed since midnight today. The sub-line shows how many orders that is.</td></tr>
+    <tr><td>Orders Today</td><td>The number of orders placed since midnight.</td></tr>
+    <tr><td>Out of Stock</td><td>How many products are currently flagged out of stock. Reads <strong>"All in stock"</strong> when the count is zero, or <strong>"Needs restock"</strong> when it isn't.</td></tr>
+    <tr><td>Customers</td><td>The total number of registered customer accounts.</td></tr>
+  </table>
+
+  <h3>2.2 &nbsp;Recent Activity</h3>
+  <p>Below the cards, a table lists your <strong>six most recent orders</strong> — order number, customer name (taken from the shipping details, or "Guest" for guest checkouts), a colored status badge (<em>Pending</em>, <em>Processing</em>, or <em>Shipped</em>), and the amount. If no orders exist yet, it simply reads "No orders yet."</p>
+
+  <h3>2.3 &nbsp;The "Demo mode" tools</h3>
+  <div class="callout plain">
+    <span class="lbl">Only appears while payments are in Mock mode</span>
+    When the Clover payment integration is set to <strong>Mock</strong> (its default — see Section&nbsp;8),
+    a small <strong>Demo mode</strong> badge and a <strong>Delete demo orders</strong> button appear near
+    the top of the dashboard. This lets you clear out test checkouts so they don't clutter your real
+    figures. It deletes <strong>only</strong> demo orders (those whose number starts with <code>DEMO-</code>)
+    — never a real customer order — and asks you to confirm first. Once you switch payments to Live, this
+    tool disappears.
+  </div>
+
+  <div class="callout tip">
+    <span class="lbl">Use it as your daily open</span>
+    Check the dashboard first thing: glance at Sales/Orders Today, and if "Out of Stock" says
+    "Needs restock," head to Inventory to see what needs attention.
+  </div>
+</section>
+
+<!-- ==================== 3. INVENTORY ==================== -->
+<section class="chapter">
+  <h2>3 &nbsp;Inventory <span class="tag real">Live data</span></h2>
+  <p class="lead">The main catalog — your sealed boxes, singles from the bulk import, and supplies. Here you search the whole catalog, flip the flags that control how items appear on the storefront, and edit an item's name, description, price, and image.</p>
+
+  <p>The header shows the section title, the subtitle "Manage Inventory, Prices, and Store Flags," and a <strong>Total Items</strong> count so you always know how big the catalog is.</p>
+
+  <h3>3.1 &nbsp;Finding a product</h3>
+  <p>A filter bar sits above the table:</p>
+  <table class="ref">
+    <tr><th style="width:34mm;">Control</th><th>What it does</th></tr>
+    <tr><td>Search box</td><td>Type any part of a product's <strong>name</strong>, <strong>subcategory</strong>, or <strong>ID</strong> to narrow the list instantly.</td></tr>
+    <tr><td>Category dropdown</td><td>Limit the list to one category (or "All categories").</td></tr>
+    <tr><td>Type dropdown</td><td>Filter by product type: <strong>Sealed Boxes</strong>, <strong>Singles</strong>, or <strong>Supplies &amp; Extras</strong> (or "All types").</td></tr>
+    <tr><td>"X of Y" count</td><td>Shows how many items match versus the total.</td></tr>
+    <tr><td>Clear</td><td>Appears once any filter is active; resets search, category, and type in one click.</td></tr>
+  </table>
+
+  <h3>3.2 &nbsp;The store flags</h3>
+  <p>Each row has four one-click toggle buttons. Clicking a toggle saves immediately to the store — the row dims briefly while it saves, then updates. There's no separate "save" step for flags.</p>
+  <table class="ref">
+    <tr><th style="width:26mm;">Flag</th><th>Button</th><th>Effect on the storefront</th></tr>
+    <tr><td>Sale</td><td>ON / OFF</td><td>Marks the item as on sale.</td></tr>
+    <tr><td>Featured</td><td>ON / OFF</td><td>Highlights the item in featured placements.</td></tr>
+    <tr><td>New</td><td>ON / OFF</td><td>Badges the item as a new release.</td></tr>
+    <tr><td>OOS</td><td>OOS / IN</td><td>Out of stock. When ON, the storefront shows an "Out of Stock" badge and disables the Add-to-Cart button so it can't be purchased.</td></tr>
+  </table>
+
+  <div class="ui no-break">
+    <div class="bar"><span>Inventory</span><span style="font-weight:400;font-size:7.6pt;">432 of 433</span></div>
+    <div class="main" style="padding:3mm;">
+      <div style="margin-bottom:2mm;"><span class="btn ghost">Search…</span> <span class="btn ghost">All categories ▾</span> <span class="btn ghost">All types ▾</span></div>
+      <table>
+        <tr><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Feat.</th><th>New</th><th>OOS</th><th>Actions</th></tr>
+        <tr><td>Topps Chrome Hobby Box</td><td>sports</td><td>$440.00</td><td><span class="toggle-off">OFF</span></td><td><span class="toggle-on">ON</span></td><td><span class="toggle-on">ON</span></td><td><span class="toggle-off">IN</span></td><td><span class="btn">Edit</span></td></tr>
+        <tr><td>Phoenix Blaster</td><td>sports</td><td>$35.00</td><td><span class="toggle-on">ON</span></td><td><span class="toggle-off">OFF</span></td><td><span class="toggle-off">OFF</span></td><td><span class="toggle-on">OOS</span></td><td><span class="btn">Edit</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <span class="lbl">Toggles fire immediately — aim carefully</span>
+    A flag changes the moment you click it; there's no undo prompt. If you toggle the wrong row, just
+    click the same button again to switch it back.
+  </div>
+
+  <h3>3.3 &nbsp;Editing a product</h3>
+  <p>Click <strong>Edit</strong> on any row to open the editor. You can change:</p>
+  <ul class="tight">
+    <li><strong>Name</strong> and <strong>Description</strong></li>
+    <li><strong>Price</strong> (in dollars)</li>
+    <li><strong>Image</strong> — a live preview is shown. Use the <strong>Search for Image</strong> button to find a picture, or the small <strong>info (i)</strong> button to reveal a field where you can paste an image link directly.</li>
+    <li><strong>Representative image</strong> checkbox — tick this when the photo is a close stand-in rather than the exact item; shoppers then see a "Representative image" note.</li>
+  </ul>
+  <p>Click <strong>Save Changes</strong> to apply, or <strong>Cancel</strong> to discard.</p>
+
+  <div class="callout note">
+    <span class="lbl">Adding &amp; deleting on this screen</span>
+    The main Inventory list is fed by your bulk catalog and is built for <em>maintaining</em> existing
+    products — it doesn't have "Add" or "Delete" buttons. To create and remove individual cards yourself,
+    use <strong>Custom Inventory</strong> (Section&nbsp;4).
+  </div>
+</section>
+
+<!-- ==================== 4. SINGLES ==================== -->
+<section class="chapter">
+  <h2>4 &nbsp;Custom Inventory — Singles <span class="tag real">Live data</span></h2>
+  <p class="lead">This is where you list individual cards yourself — snap a photo, fill in the details, and it's on the store. It's the most hands-on screen and the one designed to be used from your phone at the counter.</p>
+
+  <p>The header reads "Custom Inventory" with a subtitle counting how many singles are listed. An <strong>Add Single</strong> button sits at top right.</p>
+
+  <div class="callout plain">
+    <span class="lbl">What counts as a "single"</span>
+    A single is a <strong>non-sealed trading card</strong> in a card category (sports or TCG) — an
+    individual card, not a sealed box, accessory, or supply item. Items you add here show up grouped by
+    category.
+  </div>
+
+  <h3>4.1 &nbsp;Browsing your singles</h3>
+  <ul class="tight">
+    <li>A <strong>search box</strong> filters by card name or category as you type.</li>
+    <li>Cards are <strong>grouped by category</strong>, and each group header shows how many are in it.</li>
+    <li>Each row shows a <strong>thumbnail</strong> (or a "No photo" placeholder), the card's name, its subcategory and price, and an "Out of stock" note if flagged.</li>
+    <li>Row actions: the <strong>pencil</strong> opens the editor; the <strong>trash</strong> deletes the card (and its photos) after a confirmation.</li>
+  </ul>
+
+  <h3>4.2 &nbsp;Adding a single</h3>
+  <p>Click <strong>Add Single</strong>. The form is organized top-to-bottom so the fastest path is simply to take a photo and fill in three required fields.</p>
+
+  <h4>Photos (the top section)</h4>
+  <p>The photo tools come first because they're the part that should feel effortless on a phone:</p>
+  <table class="ref">
+    <tr><th style="width:34mm;">Button</th><th>What it does</th></tr>
+    <tr><td>Take Photo</td><td>On a phone, opens the rear camera directly — shoot the card and it uploads instantly.</td></tr>
+    <tr><td>Add Photos</td><td>Opens your photo library / file picker; you can select several at once.</td></tr>
+    <tr><td>Search for Image</td><td>Finds a stock/reference image online if you'd rather not shoot one.</td></tr>
+    <tr><td>Drag &amp; drop</td><td>On a desktop, drag image files straight onto the drop zone.</td></tr>
+  </table>
+  <p>Uploaded photos appear as thumbnails. The <strong>first photo is the Primary</strong> (used as the store thumbnail); on any other photo, click <strong>Make primary</strong> to promote it, or the <strong>×</strong> to remove it. Photos are automatically shrunk before uploading so large phone pictures don't slow things down. A <strong>Representative photo</strong> checkbox marks the image as a stand-in rather than the exact card.</p>
+
+  <div class="ui no-break">
+    <div class="bar"><span>Add a Single</span></div>
+    <div class="main">
+      <div style="border:1px dashed var(--line);border-radius:4px;padding:3mm;text-align:center;color:var(--muted);margin-bottom:2mm;">
+        Drag photos here, or use the buttons below<br>
+        <span class="btn ghost">▣ Add Photos</span> <span class="btn">◉ Take Photo</span> <span class="btn ghost">⌕ Search for Image</span>
+      </div>
+      <div style="font-size:8pt;color:var(--muted);">Title* · Category* · Price* · Subject · Set · Year · Card # · Description</div>
+    </div>
+  </div>
+
+  <h4>Card details</h4>
+  <p>Three fields are <strong>required</strong> (marked with *) and must be filled before you can save:</p>
+  <ul class="tight">
+    <li><strong>Title *</strong> — e.g. "2003 LeBron James Topps Chrome RC #111"</li>
+    <li><strong>Category *</strong> — pick from the list (shown as "Top level › Category")</li>
+    <li><strong>Price ($) *</strong> — must be greater than zero</li>
+  </ul>
+  <p>Optional details: <strong>Subject / Player</strong>, <strong>Set</strong>, <strong>Year</strong>, <strong>Card #</strong>, and a free-text <strong>Description</strong>.</p>
+
+  <h4>Condition &amp; grading</h4>
+  <p>Tick <strong>"This card is professionally graded"</strong> to switch this section between two modes:</p>
+  <table class="ref">
+    <tr><th style="width:34mm;">If…</th><th>You fill in</th></tr>
+    <tr><td>Graded</td><td><strong>Grader</strong> (PSA, BGS, SGC, or CGC), <strong>Grade</strong> (e.g. 10, 9.5), and <strong>Cert #</strong>.</td></tr>
+    <tr><td>Not graded</td><td>A single <strong>Condition</strong> field (e.g. "Near Mint," "Lightly Played").</td></tr>
+  </table>
+
+  <h4>Storefront flags</h4>
+  <p>Tick any that apply: <strong>Featured</strong>, <strong>New</strong>, <strong>On Sale</strong>, <strong>Limited</strong>, and <strong>Out of Stock</strong>. These behave the same as the Inventory flags in Section&nbsp;3.</p>
+
+  <p>Finally, click <strong>Add Single</strong> to publish (or <strong>Cancel</strong> to back out). You'll get a confirmation and be returned to the list.</p>
+
+  <h3>4.3 &nbsp;Editing or deleting a single</h3>
+  <p>Click the <strong>pencil</strong> on a row to reopen the same form pre-filled with everything you entered — including its photos — and change anything, then <strong>Save Changes</strong>. Click the <strong>trash</strong> to delete; you'll be asked to confirm, and this removes the card and its photos permanently.</p>
+
+  <div class="callout tip">
+    <span class="lbl">Counter workflow</span>
+    A new card in the case? On your phone: <strong>Add Single → Take Photo →</strong> type the Title,
+    pick the Category, enter a Price → <strong>Add Single</strong>. It's live in under a minute.
+  </div>
+</section>
+
+<!-- ==================== 5. ORDERS ==================== -->
+<section class="chapter">
+  <h2>5 &nbsp;Orders <span class="tag mock">Preview</span></h2>
+  <p class="lead">The order-management screen — titled "Order Management" — is laid out for reviewing and fulfilling orders: a search box, an Export CSV button, and a table of orders with a fulfillment status and per-row actions.</p>
+
+  <div class="callout warn">
+    <span class="lbl">This screen is a preview right now</span>
+    The Orders table currently displays <strong>sample rows</strong> (order numbers like TR-10495 with
+    May 2026 dates), and its <strong>Search</strong>, <strong>Export CSV</strong>, <strong>Fulfill</strong>,
+    and <strong>View</strong> controls are placeholders that aren't wired up yet. Treat this page as a
+    preview of the layout, not a live tool.
+  </div>
+
+  <h3>5.1 &nbsp;Where your real orders are today</h3>
+  <p>Until this screen is connected to live data, your actual recent orders appear on the <strong>Daily Dashboard</strong> under "Recent Activity" (Section&nbsp;2.2), which <em>is</em> wired to the real order database and shows order number, customer, status, and amount.</p>
+
+  <h3>5.2 &nbsp;What the finished screen will offer</h3>
+  <p>The layout previews the intended workflow, so you can see where things are headed:</p>
+  <table class="ref">
+    <tr><th style="width:34mm;">Column / control</th><th>Intended use</th></tr>
+    <tr><td>Order ID</td><td>The order's reference number.</td></tr>
+    <tr><td>Date</td><td>When it was placed.</td></tr>
+    <tr><td>Customer</td><td>Who placed it.</td></tr>
+    <tr><td>Fulfillment</td><td>Status badge — e.g. Unfulfilled, Processing, Shipped.</td></tr>
+    <tr><td>Total</td><td>Order value.</td></tr>
+    <tr><td>Fulfill / View</td><td>Advance an order's fulfillment, or open its full details.</td></tr>
+    <tr><td>Export CSV</td><td>Download the order list as a spreadsheet.</td></tr>
+  </table>
+</section>
+
+<!-- ==================== 6. CUSTOMERS ==================== -->
+<section class="chapter">
+  <h2>6 &nbsp;Customers <span class="tag real">Live data</span></h2>
+  <p class="lead">A read-only <strong>Customer Directory</strong> of everyone with an account, with their order history and loyalty standing rolled up. To actually create or change accounts, use the <strong>Manage Users</strong> link at top right (it takes you to Section&nbsp;7).</p>
+
+  <h3>6.1 &nbsp;The directory table</h3>
+  <table class="ref">
+    <tr><th style="width:34mm;">Column</th><th>Shows</th></tr>
+    <tr><td>Name / Email</td><td>The customer's name and email address.</td></tr>
+    <tr><td>Role</td><td>Whether they're a customer or an admin.</td></tr>
+    <tr><td>Total Orders</td><td>How many orders they've placed.</td></tr>
+    <tr><td>Lifetime Spent</td><td>Their total spend to date.</td></tr>
+    <tr><td>Loyalty Tier</td><td>A colored badge — Bronze, Silver, Gold, or Diamond.</td></tr>
+  </table>
+  <p>If no one has registered yet, the table reads "No customers yet."</p>
+
+  <h3>6.2 &nbsp;How loyalty tiers are decided</h3>
+  <p>A customer's tier is set automatically from their loyalty points:</p>
+  <table class="ref">
+    <tr><th style="width:34mm;">Tier</th><th>Loyalty points</th></tr>
+    <tr><td>Bronze</td><td>Under 250</td></tr>
+    <tr><td>Silver</td><td>250 – 999</td></tr>
+    <tr><td>Gold</td><td>1,000 – 4,999</td></tr>
+    <tr><td>Diamond</td><td>5,000 and above</td></tr>
+  </table>
+  <p>You can adjust a customer's loyalty points on the Users screen (Section&nbsp;7.3), which will move them between tiers.</p>
+</section>
+
+<!-- ==================== 7. USERS ==================== -->
+<section class="chapter">
+  <h2>7 &nbsp;Users &amp; Staff <span class="tag real">Live data</span></h2>
+  <p class="lead">The <strong>User &amp; Staff Management</strong> screen is where accounts are actually created, edited, promoted, and removed. This is your control room for who can do what.</p>
+
+  <h3>7.1 &nbsp;The toolbar</h3>
+  <ul class="tight">
+    <li><strong>Search</strong> — filter the user list by name or email.</li>
+    <li><strong>Add User</strong> — create a new account (see 7.2).</li>
+  </ul>
+  <div class="callout note">
+    <span class="lbl">If "Add User" is greyed out</span>
+    Creating and deleting accounts requires an extra server key (the Supabase service-role key) to be
+    configured. If it isn't, the <strong>Add User</strong> button and the delete action are disabled, and a
+    notice explains this — but <strong>role changes, profile edits, and password resets still work</strong>
+    without it.
+  </div>
+
+  <h3>7.2 &nbsp;Adding a user</h3>
+  <ol class="steps">
+    <li>Click <strong>Add User</strong>.</li>
+    <li>Enter an <strong>Email</strong> and a <strong>Name</strong>.</li>
+    <li>Set a <strong>Temporary password</strong> (minimum 6 characters) — the person can change it later.</li>
+    <li>Choose a <strong>Role</strong>: <em>customer</em>, or <em>admin (staff)</em> for someone who needs the portal.</li>
+    <li>Click <strong>Create account</strong>. (The button stays disabled until the email looks valid and the password is long enough.)</li>
+  </ol>
+
+  <h3>7.3 &nbsp;Managing existing users</h3>
+  <p>Each row in the table offers:</p>
+  <table class="ref">
+    <tr><th style="width:38mm;">Control</th><th>What it does</th></tr>
+    <tr><td>Role dropdown</td><td>Switch a person between <strong>customer</strong> and <strong>admin</strong>. The change takes effect immediately.</td></tr>
+    <tr><td>Edit (pencil)</td><td>Open a small dialog to change their <strong>Name</strong> and <strong>Loyalty points</strong>.</td></tr>
+    <tr><td>Password reset (key)</td><td>Emails the user a password-reset link.</td></tr>
+    <tr><td>Delete (trash)</td><td>Permanently removes the account after a confirmation.</td></tr>
+  </table>
+  <p>The table also shows each person's loyalty points and the date they joined. Your own account is marked with a small <strong>"you"</strong> tag, and — as a safety measure — <strong>you can't delete yourself</strong>.</p>
+
+  <div class="callout tip">
+    <span class="lbl">Onboarding a new staff member</span>
+    Add User → set their email, name, and a temporary password → choose <strong>admin (staff)</strong> →
+    Create account. Tell them to use the <strong>Password reset</strong> link (or the reset key on their row)
+    to set their own password.
+  </div>
+</section>
+
+<!-- ==================== 8. INTEGRATIONS ==================== -->
+<section class="chapter">
+  <h2>8 &nbsp;Integrations — Clover Payments <span class="tag partial">Setup</span></h2>
+  <p class="lead">The <strong>Integrations</strong> screen connects the store to <strong>Clover</strong> for taking card payments. The whole thing runs off one switch: <strong>Mock</strong> (simulate everything, no account needed) or <strong>Live</strong> (real payments with real credentials).</p>
+
+  <h3>8.1 &nbsp;Reading the status banner</h3>
+  <p>A banner at the top tells you what's currently active:</p>
+  <table class="ref">
+    <tr><th style="width:44mm;">Banner</th><th>Meaning</th></tr>
+    <tr><td>Phantom (mock) Clover</td><td>Payments are being simulated. This is the default and is safe — no real money moves.</td></tr>
+    <tr><td>LIVE Clover</td><td>Real Clover payments are active.</td></tr>
+    <tr><td>Set to Live but falling back to mock</td><td>You chose Live but a required credential (Merchant ID or API token) is missing, so it's safely staying in mock. Fill in the missing fields to go truly live.</td></tr>
+    <tr><td>Settings table not found</td><td>A one-time database migration hasn't been run yet, so saving and the Live toggle aren't available. Ask your developer to run it.</td></tr>
+  </table>
+
+  <h3>8.2 &nbsp;The Mock / Live switch</h3>
+  <ul class="tight">
+    <li><strong>Mock (phantom)</strong> — everything is simulated end-to-end. Leave it here while you set up or demo the store.</li>
+    <li><strong>Live</strong> — flip to this only once you've entered and tested real Clover credentials.</li>
+  </ul>
+
+  <h3>8.3 &nbsp;The credential fields</h3>
+  <table class="ref">
+    <tr><th style="width:48mm;">Field</th><th>What it is</th></tr>
+    <tr><td>Environment</td><td><strong>Sandbox</strong> (testing) or <strong>Production</strong> (real money). Always start with Sandbox.</td></tr>
+    <tr><td>Merchant ID (mId)</td><td>Your Clover merchant identifier.</td></tr>
+    <tr><td>Platform API Token</td><td>Your Clover platform token. Stored securely — once set, it shows masked, and you can leave it blank to keep the current one.</td></tr>
+    <tr><td>Ecommerce Public Key (PAKMS)</td><td>The browser-side key used to tokenize card details.</td></tr>
+    <tr><td>Ecommerce Private Key</td><td>The server-side key used to charge cards. Also stored masked.</td></tr>
+  </table>
+
+  <div class="callout plain">
+    <span class="lbl">Where to find these in Clover</span>
+    In your Clover Dashboard: <strong>Setup → API Tokens</strong> gives you the Merchant ID and Platform
+    token; <strong>Settings → Ecommerce → API Tokens</strong> gives you the public and private ecommerce
+    keys. Use the <strong>Sandbox</strong> environment first.
+  </div>
+
+  <h3>8.4 &nbsp;Testing and saving</h3>
+  <ol class="steps">
+    <li>Enter your credentials.</li>
+    <li>Click <strong>Test Connection</strong> — a success message confirms the keys work (and shows your merchant name); a failure explains what's wrong.</li>
+    <li>Click <strong>Save Settings</strong>.</li>
+    <li>Only after a successful test in Sandbox should you switch Environment to Production and the mode to Live.</li>
+  </ol>
+
+  <div class="callout warn">
+    <span class="lbl">Until Clover is Live, the store can't charge real cards</span>
+    In Mock mode, checkouts are simulated. Complete this screen with real Production credentials — and test
+    them — before relying on the store to take real payments.
+  </div>
+</section>
+
+<!-- ==================== 9. QUICK REFERENCE ==================== -->
+<section class="chapter">
+  <h2>9 &nbsp;Quick Reference &amp; Common Tasks</h2>
+  <p class="lead">The everyday jobs, and exactly where to do each one.</p>
+
+  <table class="ref">
+    <tr><th style="width:70mm;">I want to…</th><th>Go to</th></tr>
+    <tr><td>See today's sales and orders</td><td>Daily Dashboard</td></tr>
+    <tr><td>Mark an item out of stock</td><td>Inventory → the item's <strong>OOS</strong> toggle</td></tr>
+    <tr><td>Put an item on sale / feature it / badge it new</td><td>Inventory → <strong>Sale</strong> / <strong>Featured</strong> / <strong>New</strong> toggles</td></tr>
+    <tr><td>Change a product's price, name, or image</td><td>Inventory → <strong>Edit</strong></td></tr>
+    <tr><td>List a new single card (with a photo)</td><td>Custom Inventory → <strong>Add Single</strong></td></tr>
+    <tr><td>Remove a single card</td><td>Custom Inventory → the row's <strong>trash</strong> icon</td></tr>
+    <tr><td>Look up a customer's spend or tier</td><td>Customers</td></tr>
+    <tr><td>Create a staff (admin) account</td><td>Users → <strong>Add User</strong> → role <em>admin</em></td></tr>
+    <tr><td>Make someone an admin (or remove admin)</td><td>Users → the <strong>Role</strong> dropdown</td></tr>
+    <tr><td>Reset a user's password</td><td>Users → the <strong>key</strong> icon</td></tr>
+    <tr><td>Adjust a customer's loyalty points</td><td>Users → <strong>Edit</strong> (pencil)</td></tr>
+    <tr><td>Connect / test card payments</td><td>Integrations</td></tr>
+    <tr><td>Clear out test/demo orders</td><td>Daily Dashboard → <strong>Delete demo orders</strong> (visible in Mock mode)</td></tr>
+  </table>
+
+  <h3>9.1 &nbsp;Where each screen's data is real</h3>
+  <table class="ref">
+    <tr><th style="width:44mm;">Screen</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>Daily Dashboard</td><td><span class="tag real">Live data</span></td><td>Sales, orders, stock, customers, and recent activity are all real.</td></tr>
+    <tr><td>Inventory</td><td><span class="tag real">Live data</span></td><td>Full search/filter, flags, and editing. No add/delete here.</td></tr>
+    <tr><td>Custom Inventory</td><td><span class="tag real">Live data</span></td><td>Full create / edit / delete with photo upload.</td></tr>
+    <tr><td>Orders</td><td><span class="tag mock">Preview</span></td><td>Sample rows; controls not yet wired. Use the Dashboard for real orders.</td></tr>
+    <tr><td>Customers</td><td><span class="tag real">Live data</span></td><td>Read-only directory with real order roll-ups.</td></tr>
+    <tr><td>Users</td><td><span class="tag real">Live data</span></td><td>Add/delete need a server key; role/profile/reset always work.</td></tr>
+    <tr><td>Integrations</td><td><span class="tag partial">Setup</span></td><td>Defaults to Mock; enter Clover credentials to go Live.</td></tr>
+  </table>
+</section>
+
+<!-- ==================== 10. TROUBLESHOOTING ==================== -->
+<section class="chapter">
+  <h2>10 &nbsp;Troubleshooting &amp; Glossary</h2>
+
+  <h3>10.1 &nbsp;Common issues</h3>
+  <table class="ref">
+    <tr><th style="width:58mm;">Symptom</th><th>What to do</th></tr>
+    <tr><td>I don't see the "Admin" button in the top bar</td><td>You're either not signed in or your account isn't an admin. Sign in with an admin account; if you should be an admin, have another admin promote you on the Users screen.</td></tr>
+    <tr><td>Going to /admin sends me to the sign-in or account page</td><td>Same cause — the server only lets signed-in admins in. Sign in as an admin.</td></tr>
+    <tr><td>"Add User" is greyed out</td><td>The server needs the Supabase service-role key configured to create/delete accounts. Role changes, edits, and password resets still work meanwhile. Ask your developer to set the key.</td></tr>
+    <tr><td>A flag toggle failed</td><td>You'll see a brief error. Check your connection and click the toggle again.</td></tr>
+    <tr><td>Custom Inventory rows show "No photo"</td><td>Those items were listed without an image. Open the row's editor and add a photo.</td></tr>
+    <tr><td>Integrations says "Settings table not found"</td><td>A one-time database migration hasn't been run. Payments stay in safe Mock mode until your developer runs it.</td></tr>
+    <tr><td>Real orders don't appear on the Orders screen</td><td>Expected for now — that screen is a preview. Real orders show on the Dashboard's "Recent Activity."</td></tr>
+  </table>
+
+  <h3>10.2 &nbsp;Glossary of store flags</h3>
+  <table class="ref">
+    <tr><th style="width:34mm;">Flag</th><th>Meaning on the storefront</th></tr>
+    <tr><td>Sale</td><td>Item is marked as on sale.</td></tr>
+    <tr><td>Featured</td><td>Item is promoted in featured spots.</td></tr>
+    <tr><td>New</td><td>Item carries a "new release" badge.</td></tr>
+    <tr><td>Limited</td><td>Item carries a "limited" badge (set on singles).</td></tr>
+    <tr><td>Out of Stock (OOS)</td><td>Item shows an out-of-stock badge and can't be added to the cart.</td></tr>
+    <tr><td>Representative image</td><td>The photo is a close stand-in, not the exact item; shoppers see a note saying so.</td></tr>
+  </table>
+
+  <h3>10.3 &nbsp;Product types</h3>
+  <table class="ref">
+    <tr><th style="width:34mm;">Type</th><th>What it means</th></tr>
+    <tr><td>Sealed Boxes</td><td>Unopened, sealed product (hobby boxes, blasters, etc.).</td></tr>
+    <tr><td>Singles</td><td>Individual, non-sealed cards in a card category (sports / TCG).</td></tr>
+    <tr><td>Supplies &amp; Extras</td><td>Everything else — accessories, supplies, and non-card items.</td></tr>
+  </table>
+
+  <h3>10.4 &nbsp;Loyalty tiers</h3>
+  <table class="ref">
+    <tr><th style="width:34mm;">Tier</th><th>Points needed</th></tr>
+    <tr><td>Bronze</td><td>Under 250</td></tr>
+    <tr><td>Silver</td><td>250 – 999</td></tr>
+    <tr><td>Gold</td><td>1,000 – 4,999</td></tr>
+    <tr><td>Diamond</td><td>5,000+</td></tr>
+  </table>
+
+  <div class="footer-note">
+    <p><strong>About this manual.</strong> This guide documents the Top Rated admin portal as deployed at
+    the time of writing (July&nbsp;12,&nbsp;2026). Screens marked <span class="tag mock">Preview</span> or
+    <span class="tag partial">Setup</span> are expected to gain full functionality in later updates; when
+    they do, their behavior will match the workflows previewed here. If a screen looks different from this
+    manual, it has likely been updated — check for a newer edition.</p>
+  </div>
+</section>
+
+</body>
+</html>
