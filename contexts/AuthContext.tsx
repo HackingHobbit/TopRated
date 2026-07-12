@@ -109,15 +109,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // -------------------------------------------------------------------
   useEffect(() => {
     if (authMode !== 'supabase' || !supabase) return;
-    const { data: sub } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!session?.user) {
-          setUser(null);
-          return;
-        }
-        setUser(await loadProfile(supabase, session.user));
+    // IMPORTANT: keep this callback synchronous and do NOT await other
+    // Supabase calls inside it. supabase-js holds an internal auth lock
+    // (navigator.locks) for the duration of the callback; awaiting a query
+    // here (e.g. loadProfile) makes signInWithPassword's own lock wait on a
+    // query that is waiting on the lock — a deadlock that leaves the login
+    // button stuck on "Signing in…" forever. Defer the profile load with
+    // setTimeout so the lock is released first (Supabase's documented fix).
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        setUser(null);
+        return;
       }
-    );
+      const authUser = session.user;
+      setTimeout(() => {
+        loadProfile(supabase, authUser)
+          .then(setUser)
+          .catch(() => {
+            // Never leave the user unauthenticated over a profile hiccup —
+            // fall back to the auth identity so the session still works.
+            setUser({
+              id: authUser.id,
+              email: authUser.email ?? '',
+              name: authUser.email?.split('@')[0] ?? 'Member',
+              loyaltyPoints: 0,
+              role: 'customer',
+            });
+          });
+      }, 0);
+    });
     return () => {
       sub.subscription.unsubscribe();
     };
