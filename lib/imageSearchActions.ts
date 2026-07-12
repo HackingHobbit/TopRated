@@ -66,6 +66,7 @@ function score(c: { w: number; h: number; host: string; engine: string }): numbe
   if (['scryfall', 'pokemon', 'ygo'].includes(c.engine)) s += 90;
   else if (c.engine === 'ebay') s += 50;
   else if (c.engine === 'google') s += 30;
+  else if (c.engine === 'duckduckgo') s += 25;
   if ((c.w > 0 && c.w < 300) || (c.h > 0 && c.h < 300)) s -= 40;
   return Math.round(s * 10) / 10;
 }
@@ -101,6 +102,48 @@ async function fromSearxng(q: string): Promise<ImageCandidate[]> {
       }));
     }
     return out;
+  } catch {
+    return [];
+  }
+}
+
+// DuckDuckGo image search — KEYLESS. Unofficial: fetch a page to grab the
+// one-time `vqd` token, then hit the i.js JSON endpoint. Works from the
+// deployed server with no credentials. Caveat: it's scraping-based and DDG can
+// rate-limit datacenter IPs, so treat it as best-effort, not guaranteed.
+async function fromDuckDuckGo(q: string): Promise<ImageCandidate[]> {
+  try {
+    const tokenRes = await fetch(
+      `https://duckduckgo.com/?q=${encodeURIComponent(q)}&iax=images&ia=images`,
+      { headers: { 'User-Agent': UA, Accept: 'text/html' }, signal: AbortSignal.timeout(10_000), cache: 'no-store' }
+    );
+    if (!tokenRes.ok) return [];
+    const html = await tokenRes.text();
+    const m = html.match(/vqd=["']?([\d-]+)["']?/);
+    if (!m) return [];
+    const res = await fetch(
+      `https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(q)}&vqd=${m[1]}&f=,,,&p=1`,
+      {
+        headers: { 'User-Agent': UA, Accept: 'application/json', Referer: 'https://duckduckgo.com/' },
+        signal: AbortSignal.timeout(10_000),
+        cache: 'no-store',
+      }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.results ?? []).slice(0, 20).map((r: Record<string, unknown>) => {
+      const w = Number(r.width) || 0;
+      const h = Number(r.height) || 0;
+      const url = String(r.image);
+      return cand({
+        url,
+        thumb: (r.thumbnail as string) || url,
+        page: (r.url as string) || url,
+        host: hostOf(url),
+        resolution: w && h ? `${w}x${h}` : '',
+        w, h, engine: 'duckduckgo',
+      });
+    });
   } catch {
     return [];
   }
@@ -290,7 +333,7 @@ export async function searchImages(query: string): Promise<SearchResult> {
   if (!q) return { ok: false, error: 'Enter something to search for.' };
 
   const results = await Promise.allSettled([
-    fromSearxng(q), fromGoogle(q), fromEbay(q),
+    fromSearxng(q), fromDuckDuckGo(q), fromGoogle(q), fromEbay(q),
     fromScryfall(q), fromPokemon(q), fromYgo(q),
   ]);
   const all = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
@@ -299,10 +342,8 @@ export async function searchImages(query: string): Promise<SearchResult> {
     return {
       ok: false,
       error:
-        'No matching images came back. Web image search runs through SearXNG ' +
-        'when you run the admin locally, plus the free card databases; on the ' +
-        'deployed site, add an eBay or Google key for full search. Try a ' +
-        'different search term — or paste an image URL below.',
+        'No matching images came back — try a different search term, or paste ' +
+        'an image URL below.',
     };
   }
   return { ok: true, query: q, candidates: rank(all) };
