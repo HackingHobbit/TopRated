@@ -11,6 +11,7 @@ import { revalidatePath } from 'next/cache';
 import { getSupabaseAdmin } from './supabase/admin';
 import { getCurrentUser } from './supabase/server';
 import { getCloverClient } from './clover';
+import { assertAdmin } from './auth-guard';
 
 const PER_ITEM_LIMIT = 3;
 const FREE_SHIPPING_THRESHOLD = 300;
@@ -39,8 +40,8 @@ export interface PlaceOrderResult {
   paymentMode?: 'mock' | 'live';
 }
 
-function orderNumber(): string {
-  return `TR-${randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`;
+function orderNumber(prefix = 'TR'): string {
+  return `${prefix}-${randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`;
 }
 
 export async function placeOrder(
@@ -102,11 +103,13 @@ export async function placeOrder(
     const total = round2(subtotal + shippingCost + tax);
 
     const user = await getCurrentUser();
-    const number = orderNumber();
 
     // Payment through the Clover abstraction: phantom (simulated) in mock mode,
     // a real Ecommerce charge in live mode. Order creation is gated on success.
+    // Mock orders get a DEMO- number so they can be bulk-cleaned from the
+    // admin dashboard (real orders use TR-).
     const clover = await getCloverClient();
+    const number = orderNumber(clover.mode === 'mock' ? 'DEMO' : 'TR');
     const charge = await clover.createCharge({
       amountCents: Math.round(total * 100),
       orderNumber: number,
@@ -177,6 +180,43 @@ export async function placeOrder(
     };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Order failed.' };
+  }
+}
+
+/**
+ * Bulk-delete demo orders (those with a DEMO- number, created by the phantom
+ * Clover in mock mode). Admin-only. Never touches real (TR-) orders.
+ * order_items cascade on delete; inventory_transactions are matched by the
+ * order number (reference_id) and removed too.
+ */
+export async function deleteDemoOrders(): Promise<{
+  ok: boolean;
+  deleted?: number;
+  error?: string;
+}> {
+  await assertAdmin();
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: 'Supabase service key not configured.' };
+  try {
+    const { data: demo, error: qErr } = await supabase
+      .from('orders')
+      .select('id, order_number')
+      .like('order_number', 'DEMO-%');
+    if (qErr) return { ok: false, error: qErr.message };
+    if (!demo || demo.length === 0) return { ok: true, deleted: 0 };
+
+    const ids = demo.map((o: { id: string }) => o.id);
+    const numbers = demo.map((o: { order_number: string }) => o.order_number);
+
+    await supabase.from('inventory_transactions').delete().in('reference_id', numbers);
+    const { error: dErr } = await supabase.from('orders').delete().in('id', ids);
+    if (dErr) return { ok: false, error: dErr.message };
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/orders');
+    return { ok: true, deleted: ids.length };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Failed.' };
   }
 }
 

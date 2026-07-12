@@ -16,6 +16,7 @@ import path from 'path';
 import { getSupabaseServer } from './supabase/server';
 import { supabaseConfigured } from './supabase/env';
 import { isSingle } from './productFacets';
+import { loadCloverSettings } from './clover';
 import type {
   Product,
   AdminUser,
@@ -311,6 +312,10 @@ export interface DashboardStats {
   ordersToday: number;
   outOfStock: number;
   customers: number;
+  /** true when the Clover integration is effectively in mock mode. */
+  cloverMock: boolean;
+  /** count of DEMO- orders (mock checkouts) that can be cleaned up. */
+  demoOrderCount: number;
   recentOrders: Array<{
     orderNumber: string;
     customer: string;
@@ -326,6 +331,8 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
     ordersToday: 0,
     outOfStock: 0,
     customers: 0,
+    cloverMock: true,
+    demoOrderCount: 0,
     recentOrders: [],
   };
   if (!supabaseConfigured()) return empty;
@@ -335,16 +342,26 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [{ data: orders }, { data: products }, { count: customerCount }] =
-    await Promise.all([
-      supabase
-        .from('orders')
-        .select('order_number, status, total, created_at, shipping_address')
-        .order('created_at', { ascending: false })
-        .limit(200),
-      supabase.from('products').select('id, is_out_of_stock'),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }),
-    ]);
+  const cloverSettings = await loadCloverSettings();
+  const cloverMock = !(
+    cloverSettings.mode === 'live' && cloverSettings.merchantId && cloverSettings.apiToken
+  );
+
+  const [
+    { data: orders },
+    { data: products },
+    { count: customerCount },
+    { count: demoCount },
+  ] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('order_number, status, total, created_at, shipping_address')
+      .order('created_at', { ascending: false })
+      .limit(200),
+    supabase.from('products').select('id, is_out_of_stock'),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('orders').select('id', { count: 'exact', head: true }).like('order_number', 'DEMO-%'),
+  ]);
 
   const ords = (orders ?? []) as Array<{
     order_number: string;
@@ -366,6 +383,8 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
     ordersToday: todays.length,
     outOfStock,
     customers: customerCount ?? 0,
+    cloverMock,
+    demoOrderCount: demoCount ?? 0,
     recentOrders: ords.slice(0, 6).map((o) => ({
       orderNumber: o.order_number,
       customer: o.shipping_address?.fullName || 'Guest',

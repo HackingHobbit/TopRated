@@ -1,6 +1,7 @@
 import styles from './page.module.css';
 import { Package, ShoppingCart, Users, DollarSign } from 'lucide-react';
 import { getDashboardStats } from '@/lib/db';
+import DemoOrdersButton from './DemoOrdersButton';
 
 const STATUS_CLASS: Record<string, string> = {
   pending: 'pending',
@@ -31,6 +32,8 @@ export default async function AdminDashboard() {
         <h1>Daily Dashboard</h1>
         <p className={styles.date}>{todayLabel}</p>
       </div>
+
+      {stats.cloverMock && <DemoOrdersButton count={stats.demoOrderCount} />}
 
       <div className={styles.metricsGrid}>
         <div className={`glass-panel ${styles.metricCard}`}>
