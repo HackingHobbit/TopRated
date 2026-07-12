@@ -39,6 +39,7 @@ export default async function Home() {
   const topFeatured = allProducts.filter((p) => p.isFeatured).slice(0, 4);
   const newReleases = allProducts.filter((p) => p.isNewRelease).slice(0, 4);
   const preOrders = allProducts.filter((p) => p.isPreOrder).slice(0, 4);
+  const deals = allProducts.filter((p) => p.isSale).slice(0, 4);
 
   return (
     <div className={styles.container}>
@@ -68,10 +69,10 @@ export default async function Home() {
               {/* Hero CTAs point to filters that actually have matches in the
                   seeded data — the old ?category=sealed / ?category=singles
                   returned an empty grid because no row uses those values. */}
-              <Link href="/shop?subCategory=NFL" className="btn-primary">
+              <Link href="/shop?category=sports" className="btn-primary">
                 Shop Sports
               </Link>
-              <Link href="/shop?subCategory=Pok%C3%A9mon" className="btn-secondary">
+              <Link href="/shop?category=tcg" className="btn-secondary">
                 Browse TCG
               </Link>
             </div>
@@ -87,14 +88,20 @@ export default async function Home() {
 
       <ProductSection
         title="New Releases"
-        cta={{ href: '/shop?subCategory=All', label: 'Shop New' }}
+        cta={{ href: '/shop?new=1', label: 'Shop New' }}
         products={newReleases}
       />
 
       <ProductSection
         title="Pre-Orders"
-        cta={{ href: '/shop?category=tcg', label: 'Reserve Yours' }}
+        cta={{ href: '/shop?preorder=1', label: 'Reserve Yours' }}
         products={preOrders}
+      />
+
+      <ProductSection
+        title="Deals"
+        cta={{ href: '/shop?sale=1', label: 'Shop Deals' }}
+        products={deals}
       />
 
       {/* News & Events */}
@@ -132,7 +139,7 @@ export default async function Home() {
       </ScrollReveal>
 
       <ScrollReveal>
-        <section className={`container ${styles.visitUs}`}>
+        <section id="visit" className={`container ${styles.visitUs}`}>
           <div className={`glass-panel ${styles.visitCard}`}>
             <div className={styles.visitContent}>
               <h2>Visit Our Store</h2>

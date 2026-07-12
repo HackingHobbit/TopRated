@@ -123,21 +123,110 @@
   font-weight: 600;
 }
 
-.productGrid {
+.productMain {
   flex: 1;
+  min-width: 0;
+}
+
+.productGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 2rem;
 }
 
 .emptyState {
-  grid-column: 1 / -1;
   text-align: center;
   padding: 4rem;
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.02);
   border-radius: var(--radius-lg);
   border: 1px dashed var(--border-subtle);
+}
+
+/* Result bar: count + active-filter chips, above the grid */
+.resultBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.resultCount {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  background: rgba(237, 28, 46, 0.1);
+  color: var(--accent-red);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: rgba(237, 28, 46, 0.18);
+}
+
+.clearAll,
+.clearAllInline {
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.clearAll:hover,
+.clearAllInline:hover {
+  color: var(--text-primary);
+}
+
+.clearAllInline {
+  font-size: 0.95rem;
+}
+
+/* Price range inputs */
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.priceInput {
+  width: 100%;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.65rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.priceInput:focus {
+  outline: none;
+  border-color: var(--border-strong);
+}
+
+.priceDash {
+  color: var(--text-muted);
 }
 
 .searchContainer {

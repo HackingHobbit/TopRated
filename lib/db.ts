@@ -15,6 +15,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getSupabaseServer } from './supabase/server';
 import { supabaseConfigured } from './supabase/env';
+import { isSingle } from './productFacets';
 import type {
   Product,
   AdminUser,
@@ -232,10 +233,12 @@ export const getCategories = cache(async (): Promise<CategoryOption[]> => {
   );
 });
 
-/** All single cards (products with is_sealed=false) for the admin list. */
+/** All single cards for the admin list. A "single" is a non-sealed product in
+ *  a card category (sports/tcg) — NOT a beverage/accessory/memorabilia item,
+ *  which happen to also be non-sealed. See lib/productFacets.isSingle. */
 export const getSingles = cache(async (): Promise<Product[]> => {
   const all = await getProducts();
-  return all.filter((p) => !p.isSealed);
+  return all.filter(isSingle);
 });
 
 export interface CustomerRow {

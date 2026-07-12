@@ -1,0 +1,68 @@
+.band {
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.inner {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+  justify-content: center;
+  color: var(--text-secondary);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.item:hover {
+  color: var(--text-primary);
+}
+
+.icon {
+  color: var(--accent-red);
+  flex-shrink: 0;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.text strong {
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* On narrow screens keep it to a tidy 2-across grid and drop the sub-labels. */
+@media (max-width: 700px) {
+  .inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+  }
+  .item {
+    justify-content: flex-start;
+  }
+  .sub {
+    display: none;
+  }
+}

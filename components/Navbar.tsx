@@ -112,12 +112,15 @@ export default function Navbar() {
                   <Link href="/shop?subCategory=TCG&amp;search=My+Little+Pony">My Little Pony</Link>
                 </div>
                 <div className={styles.dropdownColumn}>
-                  <h4>Store &amp; Supplies</h4>
+                  <h4>Browse</h4>
+                  <Link href="/shop">All Products</Link>
+                  <Link href="/shop?type=sealed">Sealed Boxes</Link>
+                  <Link href="/shop?type=single">Singles</Link>
+                  <Link href="/shop?sale=1">Deals</Link>
                   <Link href="/shop?subCategory=Accessories">Accessories &amp; Supplies</Link>
                   <Link href="/shop?subCategory=Signed Jersey">Signed Memorabilia</Link>
                   <Link href="/shop?subCategory=Entertainment">Entertainment</Link>
                   <Link href="/shop?subCategory=Beverages">Beverages</Link>
-                  <Link href="/shop">View Everything →</Link>
                 </div>
               </div>
             </div>
@@ -195,8 +198,9 @@ export default function Navbar() {
         <nav className={styles.mobileNavLinks}>
           <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
           <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)}>Shop All</Link>
-          <Link href="/shop?category=sealed" onClick={() => setIsMobileMenuOpen(false)}>Sealed Products</Link>
-          <Link href="/shop?category=singles" onClick={() => setIsMobileMenuOpen(false)}>Singles</Link>
+          <Link href="/shop?type=sealed" onClick={() => setIsMobileMenuOpen(false)}>Sealed Boxes</Link>
+          <Link href="/shop?type=single" onClick={() => setIsMobileMenuOpen(false)}>Singles</Link>
+          <Link href="/shop?sale=1" onClick={() => setIsMobileMenuOpen(false)}>Deals</Link>
           <Link href="/about" onClick={() => setIsMobileMenuOpen(false)}>About Us</Link>
           
           <hr className={styles.mobileDivider} />

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Navbar from '@/components/Navbar';
+import TrustBand from '@/components/TrustBand';
 import CartDrawer from '@/components/CartDrawer';
 import Footer from '@/components/Footer';
 import ToastContainer from '@/components/Toast';
@@ -47,6 +48,7 @@ export default function RootLayout({
             <WantListProvider>
               <CartProvider>
                 <Navbar />
+                <TrustBand />
                 <CartDrawer />
                 <main>{children}</main>
                 <Footer />
