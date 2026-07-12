@@ -39,6 +39,7 @@ export interface SingleInput {
   isNewRelease?: boolean;
   isLimited?: boolean;
   isOutOfStock?: boolean;
+  imageRepresentative?: boolean;
 }
 
 function detailRow(id: string, input: SingleInput) {
@@ -81,6 +82,7 @@ function productRow(id: string, input: SingleInput) {
     is_out_of_stock: !!input.isOutOfStock,
     is_limited: !!input.isLimited,
     is_pre_order: false,
+    image_representative: !!input.imageRepresentative,
   };
 }
 

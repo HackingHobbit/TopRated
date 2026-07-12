@@ -84,6 +84,28 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Deliberately quieter than the promo badges: it's a disclaimer, not a
+   selling point. Bottom-left, muted, lower-case, no glow. */
+.repChip {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(10, 11, 15, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 .content {
   padding: 1.25rem;
   display: flex;

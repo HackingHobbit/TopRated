@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Info } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { getProductById } from '@/lib/db';
 import ProductDetailClient from './ProductDetailClient';
@@ -55,6 +56,16 @@ export default async function ProductDetailPage({ params }: PageProps) {
             )}
           </div>
         </div>
+
+        {product.imageRepresentative && (
+          <p className={styles.imageNote}>
+            <Info size={15} aria-hidden />
+            <span>
+              <strong>Representative image.</strong> The exact item you receive
+              may vary slightly in appearance (edition, year, or printing).
+            </span>
+          </p>
+        )}
       </div>
 
       <div className={styles.detailsSection}>

@@ -17,6 +17,9 @@ export interface Product {
   isOutOfStock: boolean;
   isLimited: boolean;
   isPreOrder: boolean;
+  /** true = the stored image is a representative stand-in, not guaranteed to
+   *  match the exact item shipped. Storefront surfaces a note when true. */
+  imageRepresentative: boolean;
 }
 
 // One uploaded photo associated with a product (front/back/angles). The

@@ -1,0 +1,4 @@
+# The review server + search use only the Python standard library.
+# Pillow is used by the publish step (enrich_images.py --apply) to compress
+# images before re-hosting; if it's missing, apply falls back to the original.
+pillow>=10.0

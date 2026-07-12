@@ -58,3 +58,11 @@ deno.lock
 scripts/image_candidates.json
 scripts/image_review.html
 scripts/approvals.json
+
+# Portable image-review kit: the real Supabase creds + generated apply/review
+# artifacts. The candidate seed (work/image_candidates.json) IS committed so
+# the kit is ready to review out of the box.
+image-review-kit/.env
+image-review-kit/work/image_map.json
+image-review-kit/work/image_review.html
+image-review-kit/work/approvals.json

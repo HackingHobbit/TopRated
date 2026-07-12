@@ -39,6 +39,7 @@ export default async function EditSinglePage({
     isNewRelease: product.isNewRelease,
     isLimited: product.isLimited,
     isOutOfStock: product.isOutOfStock,
+    imageRepresentative: product.imageRepresentative,
   };
 
   return (

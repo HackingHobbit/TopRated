@@ -16,7 +16,8 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
     name: product.name,
     description: product.description,
     price: product.price,
-    image: product.image
+    image: product.image,
+    imageRepresentative: product.imageRepresentative ?? false
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -28,7 +29,8 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
         name: formData.name,
         description: formData.description,
         price: Number(formData.price),
-        image: formData.image
+        image: formData.image,
+        imageRepresentative: formData.imageRepresentative
       });
       onSave(updated);
     } catch (error) {
@@ -78,13 +80,25 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
             </div>
             <div className={styles.formGroup}>
               <label>Image URL</label>
-              <input 
-                type="url" 
-                value={formData.image} 
+              <input
+                type="url"
+                value={formData.image}
                 onChange={e => setFormData({...formData, image: e.target.value})}
                 required
               />
             </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.checkLabel}>
+              <input
+                type="checkbox"
+                checked={formData.imageRepresentative}
+                onChange={e => setFormData({...formData, imageRepresentative: e.target.checked})}
+              />
+              Representative image — a close stand-in, not the exact item
+              (shows a &ldquo;Representative image&rdquo; note to shoppers)
+            </label>
           </div>
 
           <div className={styles.actions}>

@@ -1,0 +1,40 @@
+# SearXNG config for the Top Rated image-review kit (local, API use).
+# use_default_settings keeps all the built-in engines; we only change what
+# matters for programmatic image search.
+use_default_settings: true
+
+general:
+  instance_name: "Top Rated image search"
+  debug: false
+
+server:
+  # Session-signing key for THIS local instance (not a credential to anything).
+  # Regenerate any time with:  python3 -c "import secrets;print(secrets.token_hex(32))"
+  secret_key: "20e84c886d0dbccebf6abcd684fa4073246b5896008f5bb02bdaf89e9cf3040e"
+  # The bot-limiter would block our own scripted requests. Off is safe because
+  # this instance is only reachable on the internal compose network / localhost.
+  limiter: false
+  public_instance: false
+
+search:
+  # JSON is disabled by default; the pipeline needs it.
+  formats:
+    - html
+    - json
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "en"
+
+outgoing:
+  # Give slower image engines room to answer.
+  request_timeout: 8.0
+  max_request_timeout: 15.0
+
+# Silence engines that pollute product-image results (icon sets + stock photos).
+engines:
+  - name: devicons
+    disabled: true
+  - name: lucide
+    disabled: true
+  - name: unsplash
+    disabled: true

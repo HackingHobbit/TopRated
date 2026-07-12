@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Product } from '@/lib/types';
 import { useCart } from '@/contexts/CartContext';
 import { useWantList } from '@/contexts/WantListContext';
-import { Heart } from 'lucide-react';
+import { Heart, Info } from 'lucide-react';
 import styles from './ProductCard.module.css';
 
 interface ProductCardProps {
@@ -73,6 +73,16 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.isNewRelease && <span className={`${styles.badge} ${styles.newBadge}`}>New</span>}
             {product.isLimited && <span className={`${styles.badge} ${styles.limitedBadge}`}>Limited</span>}
           </div>
+
+          {product.imageRepresentative && (
+            <span
+              className={styles.repChip}
+              title="The image shown is representative — the exact item may vary in appearance."
+            >
+              <Info size={12} aria-hidden />
+              Representative image
+            </span>
+          )}
         </div>
       </Link>
       <div className={styles.content}>

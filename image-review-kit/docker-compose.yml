@@ -1,0 +1,49 @@
+# Portable Top Rated image-review kit — SearXNG + the review gallery.
+#
+#   docker compose up -d --build        start both services
+#   open http://127.0.0.1:8099/         review images in the browser
+#   docker compose logs -f review       watch the gallery/search logs
+#   docker compose down                 stop
+#
+# Publish approved images to Supabase (needs .env — see .env.example):
+#   docker compose exec review \
+#       python3 scripts/enrich_images.py --apply work/approvals.json
+name: toprated-image-review
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: toprated-searxng
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    restart: unless-stopped
+    # No host port: only the review service talks to SearXNG, over the internal
+    # compose network (http://searxng:8080). Nothing is exposed to your LAN.
+
+  review:
+    build: .
+    container_name: toprated-review
+    depends_on:
+      - searxng
+    environment:
+      - SEARXNG_URL=http://searxng:8080
+      - REVIEW_HOST=0.0.0.0            # bind inside the container…
+      - REVIEW_PORT=8099
+      - DB_PATH=/app/data/db.json
+      - CANDIDATES_PATH=/app/work/image_candidates.json
+      - IMAGE_MAP_PATH=/app/work/image_map.json
+    env_file:
+      # Supabase creds for the publish step. Optional — the file only needs to
+      # exist if you run `--apply`. Copy .env.example to .env and fill it in.
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data            # product catalog (db.json); updated by --apply
+      - ./work:/app/work            # candidates + your outputs (persist on host)
+    ports:
+      # …published to localhost ONLY on the host. Override the host port with
+      # REVIEW_HOST_PORT=8098 docker compose up  (e.g. if 8099 is taken).
+      - "127.0.0.1:${REVIEW_HOST_PORT:-8099}:8099"
+    restart: unless-stopped

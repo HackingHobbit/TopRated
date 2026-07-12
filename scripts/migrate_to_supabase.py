@@ -121,6 +121,7 @@ def main() -> int:
             'is_out_of_stock': p.get('isOutOfStock', False),
             'is_limited': p.get('isLimited', False),
             'is_pre_order': p.get('isPreOrder', False),
+            'image_representative': p.get('imageRepresentative', False),
         }
         for p in products
     ]

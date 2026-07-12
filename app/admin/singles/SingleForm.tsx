@@ -29,6 +29,7 @@ export interface SingleFormInitial {
   isNewRelease: boolean;
   isLimited: boolean;
   isOutOfStock: boolean;
+  imageRepresentative: boolean;
 }
 
 const EMPTY: SingleFormInitial = {
@@ -51,6 +52,7 @@ const EMPTY: SingleFormInitial = {
   isNewRelease: false,
   isLimited: false,
   isOutOfStock: false,
+  imageRepresentative: false,
 };
 
 interface Props {
@@ -101,6 +103,7 @@ export default function SingleForm({
       isNewRelease: f.isNewRelease,
       isLimited: f.isLimited,
       isOutOfStock: f.isOutOfStock,
+      imageRepresentative: f.imageRepresentative,
     };
     startTransition(async () => {
       const res =
@@ -140,6 +143,15 @@ export default function SingleForm({
           pathPrefix="singles"
           disabled={isPending}
         />
+        <label className={styles.checkRow}>
+          <input
+            type="checkbox"
+            checked={f.imageRepresentative}
+            onChange={(e) => set('imageRepresentative', e.target.checked)}
+          />
+          Representative photo — a close stand-in, not the exact item (shows a
+          &ldquo;Representative image&rdquo; note to shoppers)
+        </label>
       </section>
 
       <section className={styles.formSection}>

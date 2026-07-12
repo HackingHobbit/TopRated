@@ -1,0 +1,9 @@
+# Baked into the image: only scripts/ + requirements.txt. Everything else is
+# bind-mounted or a secret, so keep it out of the build context.
+data/
+work/
+searxng/
+.env
+.env.example
+README.md
+refresh-from-repo.sh
