@@ -37,7 +37,7 @@ export async function loadCloverSettings(): Promise<CloverSettings> {
   return s;
 }
 
-function isLiveReady(s: CloverSettings): boolean {
+export function isLiveReady(s: CloverSettings): boolean {
   return s.mode === 'live' && Boolean(s.merchantId) && Boolean(s.apiToken);
 }
 

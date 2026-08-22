@@ -7,11 +7,13 @@
 
 import { assertAdmin } from './auth-guard';
 import { getSupabaseAdmin } from './supabase/admin';
-import { getCloverClient, getCloverSettingsMasked } from './clover';
+import { getCloverClient, getCloverSettingsMasked, isLiveReady, loadCloverSettings } from './clover';
 import { LiveCloverClient } from './clover/live';
 import { MockCloverClient } from './clover/mock';
 import type {
   CloverConnResult,
+  CloverEnv,
+  CloverMode,
   CloverSettings,
   CloverStatus,
   SaveCloverInput,
@@ -68,4 +70,29 @@ export async function testCloverConnection(input?: SaveCloverInput): Promise<Clo
   }
   // Fall back to whatever is saved/active.
   return (await getCloverClient()).testConnection();
+}
+
+export interface CloverCheckoutConfig {
+  /** 'live' only when fully configured for client-side tokenization too. */
+  mode: CloverMode;
+  environment: CloverEnv;
+  merchantId: string;
+  ecommPublicKey: string;
+}
+
+/**
+ * PUBLIC (no admin gate) — the checkout page needs this before the customer
+ * logs in. Only ever returns non-secret fields: a merchant ID and an
+ * Ecommerce PUBLIC key are meant to be used in the browser (that's what the
+ * Clover hosted-iframe SDK tokenizes with). No API token or private key here.
+ */
+export async function getCloverCheckoutConfig(): Promise<CloverCheckoutConfig> {
+  const s = await loadCloverSettings();
+  const live = isLiveReady(s) && Boolean(s.ecommPublicKey);
+  return {
+    mode: live ? 'live' : 'mock',
+    environment: s.environment,
+    merchantId: s.merchantId,
+    ecommPublicKey: s.ecommPublicKey,
+  };
 }

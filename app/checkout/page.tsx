@@ -1,11 +1,62 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { placeOrder, type ShippingDetails } from '@/lib/orderActions';
+import { getCloverCheckoutConfig, type CloverCheckoutConfig } from '@/lib/cloverActions';
+import { FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, TAX_RATE, round2 } from '@/lib/pricing';
 import styles from './page.module.css';
+
+const CLOVER_SDK_URL: Record<CloverCheckoutConfig['environment'], string> = {
+  sandbox: 'https://checkout.sandbox.dev.clover.com/sdk.js',
+  production: 'https://checkout.clover.com/sdk.js',
+};
+
+type CloverFieldType = 'CARD_NUMBER' | 'CARD_DATE' | 'CARD_CVV' | 'CARD_POSTAL_CODE';
+
+interface CloverElement {
+  mount(selector: string): void;
+}
+interface CloverElements {
+  create(type: CloverFieldType, style?: Record<string, unknown>): CloverElement;
+}
+interface CloverInstance {
+  elements(): CloverElements;
+  createToken(): Promise<{ token?: string; errors?: Record<string, string> }>;
+}
+
+declare global {
+  interface Window {
+    Clover?: new (apiAccessKey: string, opts: { merchantId: string }) => CloverInstance;
+  }
+}
+
+const CLOVER_FIELD_STYLE = {
+  input: { 'font-size': '16px', color: '#f5f5f5' },
+  '::placeholder': { color: '#6b7280' },
+};
+
+function loadScriptOnce(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === 'true') resolve();
+      else existing.addEventListener('load', () => resolve(), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.addEventListener('load', () => {
+      script.dataset.loaded = 'true';
+      resolve();
+    });
+    script.addEventListener('error', () => reject(new Error('Could not load the Clover payment SDK.')));
+    document.head.appendChild(script);
+  });
+}
 
 export default function CheckoutPage() {
   const { cart, totalPrice, clearCart } = useCart();
@@ -20,6 +71,57 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [shippingDetails, setShippingDetails] =
     useState<ShippingDetails | null>(null);
+
+  const [cloverConfig, setCloverConfig] = useState<CloverCheckoutConfig | null>(null);
+  const [cloverFieldsReady, setCloverFieldsReady] = useState(false);
+  const [cloverLoadError, setCloverLoadError] = useState<string | null>(null);
+  const cloverRef = useRef<CloverInstance | null>(null);
+
+  // Non-secret checkout config (mode/environment/merchantId/public key) —
+  // needed before the customer is logged in, so this is a public action.
+  useEffect(() => {
+    let cancelled = false;
+    getCloverCheckoutConfig().then((cfg) => {
+      if (!cancelled) setCloverConfig(cfg);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Once we know we're in live mode, load Clover's hosted-iframe SDK and mount
+  // the card fields. The PAN/CVC are typed directly into Clover's iframes and
+  // never touch our own inputs or server — createToken() is the only bridge.
+  useEffect(() => {
+    if (!cloverConfig || cloverConfig.mode !== 'live') return;
+    let cancelled = false;
+
+    loadScriptOnce(CLOVER_SDK_URL[cloverConfig.environment])
+      .then(() => {
+        if (cancelled || !window.Clover) return;
+        const clover = new window.Clover(cloverConfig.ecommPublicKey, {
+          merchantId: cloverConfig.merchantId,
+        });
+        const elements = clover.elements();
+        elements.create('CARD_NUMBER', CLOVER_FIELD_STYLE).mount('#clover-card-number');
+        elements.create('CARD_DATE', CLOVER_FIELD_STYLE).mount('#clover-card-date');
+        elements.create('CARD_CVV', CLOVER_FIELD_STYLE).mount('#clover-card-cvv');
+        elements.create('CARD_POSTAL_CODE', CLOVER_FIELD_STYLE).mount('#clover-card-postal');
+        cloverRef.current = clover;
+        if (!cancelled) setCloverFieldsReady(true);
+      })
+      .catch((e) => {
+        if (!cancelled) setCloverLoadError(e instanceof Error ? e.message : 'Could not load payment form.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cloverConfig]);
+
+  const shippingCost = totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
+  const tax = round2(totalPrice * TAX_RATE);
+  const grandTotal = round2(totalPrice + shippingCost + tax);
 
   // If cart is empty and we haven't successfully ordered, redirect
   if (cart.length === 0 && step !== 3) {
@@ -43,11 +145,7 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-    setIsProcessing(true);
 
-    // Collect shipping. Card data is intentionally not stored — real payment
-    // (Clover, Phase A2) will tokenize it client-side; for now the order is
-    // persisted with status 'pending'.
     const data = new FormData(e.currentTarget);
     const shipping: ShippingDetails = {
       fullName: String(data.get('fullName') ?? ''),
@@ -62,7 +160,24 @@ export default function CheckoutPage() {
       quantity: i.quantity,
     }));
 
-    const res = await placeOrder(items, shipping);
+    let cardToken: string | undefined;
+    if (cloverConfig?.mode === 'live') {
+      if (!cloverRef.current) {
+        setError('The payment form is still loading — please wait a moment and try again.');
+        return;
+      }
+      setIsProcessing(true);
+      const result = await cloverRef.current.createToken();
+      if (result.errors || !result.token) {
+        setIsProcessing(false);
+        setError(Object.values(result.errors ?? {})[0] || 'Please check your card details.');
+        return;
+      }
+      cardToken = result.token;
+    }
+
+    setIsProcessing(true);
+    const res = await placeOrder(items, shipping, cardToken);
     setIsProcessing(false);
     if (!res.ok) {
       setError(res.error ?? 'Sorry, we couldn’t place your order.');
@@ -161,50 +276,98 @@ export default function CheckoutPage() {
 
               <div className={styles.formSection}>
                 <h3>2. Payment Method</h3>
-                <p className={styles.mockNotice}>
-                  Payments run through the Clover integration. It&apos;s in{' '}
-                  <strong>phantom (mock) mode</strong> right now — orders are
-                  simulated and no card is charged. An admin can switch it to
-                  live Clover under <strong>Admin → Integrations</strong>. Card
-                  details entered here are never stored.
-                </p>
-                <div className={styles.inputGroup}>
-                  <label htmlFor="cardNumber">Card Number</label>
-                  <input
-                    id="cardNumber"
-                    name="cardNumber"
-                    type="text"
-                    autoComplete="off"
-                    inputMode="numeric"
-                    placeholder="•••• •••• •••• ••••"
-                    required
-                  />
-                </div>
-                <div className={styles.inputRow}>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="cardExpiry">Expiry (MM/YY)</label>
-                    <input
-                      id="cardExpiry"
-                      name="cardExpiry"
-                      type="text"
-                      autoComplete="off"
-                      placeholder="12/25"
-                      required
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="cardCvc">CVC</label>
-                    <input
-                      id="cardCvc"
-                      name="cardCvc"
-                      type="text"
-                      autoComplete="off"
-                      inputMode="numeric"
-                      placeholder="123"
-                      required
-                    />
-                  </div>
-                </div>
+
+                {cloverConfig === null && (
+                  <p className={styles.mockNotice}>Loading payment form…</p>
+                )}
+
+                {cloverConfig?.mode === 'mock' && (
+                  <>
+                    <p className={styles.mockNotice}>
+                      Payments run through the Clover integration. It&apos;s in{' '}
+                      <strong>phantom (mock) mode</strong> right now — orders are
+                      simulated and no card is charged. An admin can switch it to
+                      live Clover under <strong>Admin → Integrations</strong>. Card
+                      details entered here are never stored.
+                    </p>
+                    <div className={styles.inputGroup}>
+                      <label htmlFor="cardNumber">Card Number</label>
+                      <input
+                        id="cardNumber"
+                        name="cardNumber"
+                        type="text"
+                        autoComplete="off"
+                        inputMode="numeric"
+                        placeholder="•••• •••• •••• ••••"
+                        required
+                      />
+                    </div>
+                    <div className={styles.inputRow}>
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="cardExpiry">Expiry (MM/YY)</label>
+                        <input
+                          id="cardExpiry"
+                          name="cardExpiry"
+                          type="text"
+                          autoComplete="off"
+                          placeholder="12/25"
+                          required
+                        />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="cardCvc">CVC</label>
+                        <input
+                          id="cardCvc"
+                          name="cardCvc"
+                          type="text"
+                          autoComplete="off"
+                          inputMode="numeric"
+                          placeholder="123"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {cloverConfig?.mode === 'live' && (
+                  <>
+                    <p className={styles.mockNotice}>
+                      Payments are processed securely by Clover. Your card
+                      details are entered directly into Clover&apos;s secure
+                      fields and never touch our servers.
+                    </p>
+                    {cloverLoadError && (
+                      <p style={{ color: 'var(--accent-red)', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+                        {cloverLoadError}
+                      </p>
+                    )}
+                    {!cloverFieldsReady && !cloverLoadError && (
+                      <p className={styles.mockNotice}>Loading secure payment fields…</p>
+                    )}
+                    <div className={styles.inputGroup} style={{ display: cloverFieldsReady ? 'block' : 'none' }}>
+                      <label htmlFor="clover-card-number">Card Number</label>
+                      <div id="clover-card-number" className={styles.cloverField} />
+                    </div>
+                    <div
+                      className={styles.inputRow}
+                      style={{ display: cloverFieldsReady ? 'flex' : 'none' }}
+                    >
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="clover-card-date">Expiry (MM/YY)</label>
+                        <div id="clover-card-date" className={styles.cloverField} />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="clover-card-cvv">CVC</label>
+                        <div id="clover-card-cvv" className={styles.cloverField} />
+                      </div>
+                      <div className={styles.inputGroup}>
+                        <label htmlFor="clover-card-postal">ZIP</label>
+                        <div id="clover-card-postal" className={styles.cloverField} />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {error && (
@@ -222,9 +385,9 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 className={`btn-primary ${styles.submitBtn}`}
-                disabled={isProcessing}
+                disabled={isProcessing || cloverConfig === null}
               >
-                {isProcessing ? 'Processing...' : `Pay $${totalPrice.toFixed(2)}`}
+                {isProcessing ? 'Processing...' : `Pay $${grandTotal.toFixed(2)}`}
               </button>
             </form>
           </div>
@@ -254,16 +417,17 @@ export default function CheckoutPage() {
                 </div>
                 <div className={styles.summaryRow}>
                   <span>Shipping</span>
-                  <span>{totalPrice >= 300 ? 'Free' : '$9.99'}</span>
+                  <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
+                </div>
+                <div className={styles.summaryRow}>
+                  <span>Tax</span>
+                  <span>${tax.toFixed(2)}</span>
                 </div>
                 <div
                   className={`${styles.summaryRow} ${styles.finalTotal}`}
                 >
                   <span>Total</span>
-                  <span>
-                    $
-                    {(totalPrice + (totalPrice >= 300 ? 0 : 9.99)).toFixed(2)}
-                  </span>
+                  <span>${grandTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

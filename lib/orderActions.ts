@@ -7,16 +7,14 @@
 // regardless of RLS; the customer is linked when logged in.
 
 import { randomUUID } from 'crypto';
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { getSupabaseAdmin } from './supabase/admin';
 import { getCurrentUser, getSupabaseServer } from './supabase/server';
 import type { MyOrder } from './types';
 import { getCloverClient } from './clover';
 import { assertAdmin } from './auth-guard';
-
-const PER_ITEM_LIMIT = 3;
-const FREE_SHIPPING_THRESHOLD = 300;
-const FLAT_SHIPPING = 9.99;
+import { PER_ITEM_LIMIT, FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, TAX_RATE, round2 } from './pricing';
 
 export interface CheckoutItem {
   productId: string;
@@ -47,7 +45,9 @@ function orderNumber(prefix = 'TR'): string {
 
 export async function placeOrder(
   items: CheckoutItem[],
-  shipping: ShippingDetails
+  shipping: ShippingDetails,
+  /** Clover-hosted-field card token (client-side tokenized). Required in live mode. */
+  cardToken?: string
 ): Promise<PlaceOrderResult> {
   if (!items || items.length === 0) {
     return { ok: false, error: 'Your cart is empty.' };
@@ -100,7 +100,8 @@ export async function placeOrder(
 
     const subtotal = round2(lineItems.reduce((s, l) => s + l.lineTotal, 0));
     const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
-    const tax = 0; // Real tax calc lands in Phase A3.
+    // Flat rate for our single Windsor, CA jurisdiction — see lib/pricing.ts.
+    const tax = round2(subtotal * TAX_RATE);
     const total = round2(subtotal + shippingCost + tax);
 
     const user = await getCurrentUser();
@@ -111,9 +112,15 @@ export async function placeOrder(
     // admin dashboard (real orders use TR-).
     const clover = await getCloverClient();
     const number = orderNumber(clover.mode === 'mock' ? 'DEMO' : 'TR');
+    if (clover.mode === 'live' && !cardToken) {
+      return { ok: false, error: 'Payment could not be processed — missing card details.' };
+    }
+    const forwardedFor = (await headers()).get('x-forwarded-for');
     const charge = await clover.createCharge({
       amountCents: Math.round(total * 100),
       orderNumber: number,
+      source: cardToken,
+      clientIp: forwardedFor?.split(',')[0]?.trim(),
     });
     if (!charge.ok) {
       return { ok: false, error: charge.error || 'Payment could not be processed.' };
@@ -256,6 +263,3 @@ export async function getMyOrders(): Promise<MyOrder[]> {
   }));
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}

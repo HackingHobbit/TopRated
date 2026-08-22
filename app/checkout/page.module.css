@@ -67,6 +67,28 @@
   border-color: var(--accent-red);
 }
 
+/* Container for a mounted Clover hosted-iframe field (CARD_NUMBER/DATE/CVV/
+   POSTAL_CODE). The iframe itself can't be styled from this stylesheet —
+   only its own container box, sized to match the plain inputs above. */
+.cloverField {
+  width: 100%;
+  height: 44px;
+  padding: 0.25rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
+}
+
+.cloverField:focus-within {
+  border-color: var(--accent-red);
+}
+
+.cloverField iframe {
+  width: 100%;
+  height: 100%;
+}
+
 .inputRow {
   display: flex;
   gap: 1rem;
