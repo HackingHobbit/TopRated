@@ -106,6 +106,14 @@
   line-height: 1.5;
 }
 
+.contactInfo a {
+  transition: color var(--transition-fast);
+}
+
+.contactInfo a:hover {
+  color: var(--accent-red);
+}
+
 .icon {
   color: var(--accent-red);
   margin-top: 2px;

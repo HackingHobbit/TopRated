@@ -150,12 +150,12 @@ export default async function Home() {
               <div className={styles.addressInfo}>
                 <strong>Top Rated Cards &amp; Collectibles</strong>
                 <br />
-                123 Collector&apos;s Avenue
+                513 David Clayton Ln.
                 <br />
-                Hobby City, CA 90210
+                Windsor, CA 95492
               </div>
               <a
-                href="https://maps.google.com"
+                href="https://www.google.com/maps/search/?api=1&query=513+David+Clayton+Ln.%2C+Windsor%2C+CA+95492"
                 target="_blank"
                 rel="noreferrer"
                 className={`btn-primary ${styles.directionsBtn}`}

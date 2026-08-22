@@ -54,8 +54,16 @@ export default function Footer() {
         <div className={styles.footerSection}>
           <h4 className={styles.heading}>Contact Us</h4>
           <div className={styles.contactInfo}>
-            <p><MapPin size={16} className={styles.icon} /> 123 Collector&apos;s Avenue<br/>Hobby City, CA 90210</p>
-            <p><Phone size={16} className={styles.icon} /> (555) 123-4567</p>
+            <p>
+              <MapPin size={16} className={styles.icon} />{' '}
+              <a href="https://www.google.com/maps/search/?api=1&query=513+David+Clayton+Ln.%2C+Windsor%2C+CA+95492" target="_blank" rel="noreferrer">
+                513 David Clayton Ln.<br/>Windsor, CA 95492
+              </a>
+            </p>
+            <p>
+              <Phone size={16} className={styles.icon} />{' '}
+              <a href="tel:+17076200783">(707) 620-0783</a>
+            </p>
             <p><Mail size={16} className={styles.icon} /> support@topratedcards.com</p>
           </div>
         </div>
