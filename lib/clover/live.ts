@@ -151,6 +151,8 @@ export class LiveCloverClient implements CloverClient {
         signal: AbortSignal.timeout(20_000),
       });
       const data = await res.json().catch(() => ({}));
+      // TEMPORARY diagnostic — remove once the response shape is confirmed.
+      console.log('[clover.saveCard] raw response:', JSON.stringify(data));
       if (!res.ok) {
         return { ok: false, error: data?.error?.message || `Clover save-card failed (${res.status}).` };
       }
