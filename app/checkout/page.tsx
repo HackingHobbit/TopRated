@@ -33,9 +33,17 @@ declare global {
   }
 }
 
+// Clover's style object uses camelCase CSS-in-JS property names (confirmed
+// via docs.clover.com), not kebab-case — and the iframe defaults to a white
+// background, so it must be set explicitly to match our dark theme.
 const CLOVER_FIELD_STYLE = {
-  input: { 'font-size': '16px', color: '#f5f5f5' },
-  '::placeholder': { color: '#6b7280' },
+  input: {
+    fontSize: '16px',
+    color: '#f5f5f5',
+    // Matches --bg-primary (app/globals.css) — the iframe defaults to a
+    // white background, so it must be set explicitly, not left transparent.
+    backgroundColor: '#08090d',
+  },
 };
 
 function loadScriptOnce(src: string): Promise<void> {
