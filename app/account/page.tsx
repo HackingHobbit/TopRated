@@ -383,7 +383,7 @@ function SettingsPanel() {
           cards.map((c) => (
             <div key={c.id} className={styles.savedItemCard}>
               <div>
-                <strong>{c.brand} •••• {c.last4}</strong>
+                <strong>{c.brand && c.last4 ? `${c.brand} •••• ${c.last4}` : 'Card on file'}</strong>
                 {c.isDefault && <span className={styles.defaultBadge}>Default</span>}
                 {c.expMonth && c.expYear && (
                   <div className={styles.savedItemMeta}>Expires {c.expMonth}/{c.expYear}</div>

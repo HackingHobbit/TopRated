@@ -170,8 +170,6 @@ export async function placeOrder(
         lastName: rest.join(' '),
         existingCustomerId: profile?.clover_customer_id || undefined,
       });
-      // TEMPORARY diagnostic — remove once the response shape is confirmed.
-      console.log('[placeOrder] saveCard parsed result:', JSON.stringify(saved));
       if (!saved.ok || !saved.customerId || !saved.sourceId) {
         return { ok: false, error: saved.error || 'Could not save card.' };
       }

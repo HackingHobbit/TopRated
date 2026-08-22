@@ -123,11 +123,14 @@ export class LiveCloverClient implements CloverClient {
   // `sources` on the Customer response is a paginated list object
   // ({ object: 'list', data: [...] }), NOT a plain array — reading it as a
   // bare array (an earlier version of this code did exactly that) silently
-  // produces an empty list, so `sourceId` comes back undefined even though
-  // the card really was vaulted. That's a real bug that shipped once
-  // already: it saved the card on Clover's side (hence a real confirmation
-  // email) while our own code reported "could not save card" and aborted
-  // before ever attempting the charge. Handle both shapes defensively.
+  // produces an empty list. Confirmed against a real sandbox response:
+  // `sources` is `{ object: 'list', data: [<cardId string>, ...] }` — the
+  // entries are plain id strings, not objects, and the response carries no
+  // brand/last4/expiry at all. This card-on-file endpoint and the merchant
+  // Platform API (used for testConnection/listInventory) are two different
+  // surfaces over the same account, so we do a best-effort follow-up lookup
+  // against the Platform API purely to get display details — if that lookup
+  // fails, the card is still successfully saved, it just shows generically.
   async saveCard(input: CloverSaveCardInput): Promise<CloverSaveCardResult> {
     if (!this.s.ecommPrivateKey) {
       return { ok: false, error: 'No Ecommerce private key configured.' };
@@ -151,27 +154,51 @@ export class LiveCloverClient implements CloverClient {
         signal: AbortSignal.timeout(20_000),
       });
       const data = await res.json().catch(() => ({}));
-      // TEMPORARY diagnostic — remove once the response shape is confirmed.
-      console.log('[clover.saveCard] raw response:', JSON.stringify(data));
       if (!res.ok) {
         return { ok: false, error: data?.error?.message || `Clover save-card failed (${res.status}).` };
       }
+      const customerId = (data.customerId ?? data.id ?? input.existingCustomerId) as string | undefined;
       const sourcesRaw = data.sources;
-      const sources: Array<Record<string, unknown>> = Array.isArray(sourcesRaw)
+      const sourceIds: string[] = Array.isArray(sourcesRaw)
         ? sourcesRaw
         : Array.isArray(sourcesRaw?.data)
           ? sourcesRaw.data
           : [];
-      const card = sources[sources.length - 1] ?? {};
-      return {
-        ok: true,
-        customerId: data.customerId ?? data.id ?? input.existingCustomerId,
-        sourceId: (card.id ?? card.sourceId) as string | undefined,
-        brand: (card.brand ?? card.cardType) as string | undefined,
-        last4: card.last4 as string | undefined,
-        expMonth: (card.exp_month ?? card.expMonth) as number | undefined,
-        expYear: (card.exp_year ?? card.expYear) as number | undefined,
-      };
+      const sourceId = sourceIds[sourceIds.length - 1];
+      if (!customerId || !sourceId) {
+        return { ok: false, error: 'Clover did not return a saved card reference.' };
+      }
+
+      let brand: string | undefined;
+      let last4: string | undefined;
+      let expMonth: number | undefined;
+      let expYear: number | undefined;
+      if (this.s.merchantId && this.s.apiToken) {
+        try {
+          const platformRes = await fetch(
+            `${platformBase(this.s.environment)}/v3/merchants/${encodeURIComponent(this.s.merchantId)}/customers/${encodeURIComponent(customerId)}?expand=cards`,
+            { headers: this.platformHeaders(), signal: AbortSignal.timeout(10_000) }
+          );
+          if (platformRes.ok) {
+            const pdata = await platformRes.json();
+            const cards = (pdata?.cards?.elements ?? []) as Array<Record<string, unknown>>;
+            const match = cards.find((c) => c.id === sourceId) ?? cards[cards.length - 1];
+            if (match) {
+              brand = match.cardType as string | undefined;
+              last4 = match.last4 as string | undefined;
+              const exp = String(match.expirationDate ?? ''); // Platform API format: "MMYY"
+              if (exp.length === 4) {
+                expMonth = Number(exp.slice(0, 2));
+                expYear = 2000 + Number(exp.slice(2, 4));
+              }
+            }
+          }
+        } catch {
+          /* display-only enrichment — the card is already saved either way */
+        }
+      }
+
+      return { ok: true, customerId, sourceId, brand, last4, expMonth, expYear };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : 'save-card error' };
     }

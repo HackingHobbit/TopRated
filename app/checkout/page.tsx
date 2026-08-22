@@ -381,7 +381,7 @@ export default function CheckoutPage() {
                     >
                       {paymentMethods.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.brand} •••• {c.last4}
+                          {c.brand && c.last4 ? `${c.brand} •••• ${c.last4}` : 'Card on file'}
                           {c.expMonth && c.expYear ? ` (exp ${c.expMonth}/${c.expYear})` : ''}
                         </option>
                       ))}
