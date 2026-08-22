@@ -211,6 +211,21 @@
   color: #10b981;
 }
 
+.delivered {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+}
+
+.canceled {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.refunded {
+  background: rgba(156, 163, 175, 0.2);
+  color: #9ca3af;
+}
+
 .tierBronze {
   background: rgba(180, 83, 9, 0.2);
   color: #fbbf24;

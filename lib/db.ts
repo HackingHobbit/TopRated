@@ -394,6 +394,46 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
   };
 });
 
+export interface AdminOrderRow {
+  id: string;
+  orderNumber: string;
+  placedAt: string;
+  customer: string;
+  status: string;
+  total: number;
+}
+
+/** Full order list for the admin Orders page (real data — see lib/orderActions
+ *  for how orders are created at checkout). Customer name mirrors the Daily
+ *  Dashboard's "Recent Activity": the shipping-address snapshot taken at
+ *  checkout, so guest and logged-in orders both show a name consistently. */
+export const getAdminOrders = cache(async (): Promise<AdminOrderRow[]> => {
+  if (!supabaseConfigured()) return [];
+  const supabase = await getSupabaseServer();
+  if (!supabase) return [];
+
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('id, order_number, status, total, placed_at, shipping_address')
+    .order('placed_at', { ascending: false });
+
+  return ((orders ?? []) as Array<{
+    id: string;
+    order_number: string;
+    status: string | null;
+    total: number | string;
+    placed_at: string;
+    shipping_address: { fullName?: string } | null;
+  }>).map((o) => ({
+    id: o.id,
+    orderNumber: o.order_number,
+    placedAt: o.placed_at,
+    customer: o.shipping_address?.fullName || 'Guest',
+    status: o.status || 'pending',
+    total: Number(o.total) || 0,
+  }));
+});
+
 /** One single with its detail row and ordered images, for the edit screen. */
 export const getSingleWithDetails = cache(
   async (id: string): Promise<SingleWithDetails | null> => {
