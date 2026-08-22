@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useToast } from '@/contexts/ToastContext';
-import { updateOrderStatus, ORDER_STATUSES, type OrderStatus } from '@/lib/orderActions';
+import { updateOrderStatus } from '@/lib/orderActions';
+import { ORDER_STATUSES, type OrderStatus } from '@/lib/orderStatus';
 import type { AdminOrderRow } from '@/lib/db';
 import styles from '../page.module.css';
 

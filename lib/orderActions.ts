@@ -15,6 +15,7 @@ import type { MyOrder } from './types';
 import { getCloverClient } from './clover';
 import { assertAdmin } from './auth-guard';
 import { PER_ITEM_LIMIT, FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, TAX_RATE, round2 } from './pricing';
+import { ORDER_STATUSES, type OrderStatus } from './orderStatus';
 
 export interface CheckoutItem {
   productId: string;
@@ -329,16 +330,6 @@ export async function deleteDemoOrders(): Promise<{
     return { ok: false, error: e instanceof Error ? e.message : 'Failed.' };
   }
 }
-
-export const ORDER_STATUSES = [
-  'pending',
-  'processing',
-  'shipped',
-  'delivered',
-  'canceled',
-  'refunded',
-] as const;
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 const RESTOCKING_STATUSES: OrderStatus[] = ['canceled', 'refunded'];
 
