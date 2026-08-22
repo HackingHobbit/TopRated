@@ -53,7 +53,7 @@ export default async function Home() {
               width={360}
               height={120}
               priority
-              sizes="(max-width: 600px) 60vw, 360px"
+              unoptimized
             />
           </div>
           <div className={styles.heroContent}>

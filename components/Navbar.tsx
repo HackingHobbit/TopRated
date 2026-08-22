@@ -78,7 +78,7 @@ export default function Navbar() {
             width={140}
             height={44}
             priority
-            sizes="140px"
+            unoptimized
           />
         </Link>
         
@@ -175,7 +175,7 @@ export default function Navbar() {
             className={styles.mobileLogo}
             width={140}
             height={44}
-            sizes="140px"
+            unoptimized
           />
           <button className={styles.closeMenuBtn} onClick={() => setIsMobileMenuOpen(false)}>
             <X size={28} />

@@ -16,7 +16,7 @@ export default function Footer() {
               className={styles.logo}
               width={200}
               height={60}
-              sizes="200px"
+              unoptimized
             />
           </div>
           <p className={styles.description}>
