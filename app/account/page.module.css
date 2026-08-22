@@ -172,3 +172,84 @@
   color: var(--text-secondary);
   margin-top: 0.25rem;
 }
+
+.settingsSection {
+  margin-bottom: 2.5rem;
+}
+
+.settingsSection h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.settingsRow {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.settingsField {
+  flex: 1;
+  min-width: 200px;
+}
+
+.settingsField label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.settingsField input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.savedItemCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+}
+
+.savedItemMeta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.defaultBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-red);
+  margin-left: 0.5rem;
+}
+
+.deleteBtn {
+  background: none;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.deleteBtn:hover {
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+}

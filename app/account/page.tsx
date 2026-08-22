@@ -8,6 +8,15 @@ import { useWantList } from '@/contexts/WantListContext';
 import ProductCard from '@/components/ProductCard';
 import { getMyOrders } from '@/lib/orderActions';
 import type { MyOrder } from '@/lib/types';
+import {
+  getMyProfile,
+  updateMyProfile,
+  listMyAddresses,
+  saveAddress,
+  deleteAddress,
+  type SavedAddress,
+} from '@/lib/addressActions';
+import { listMyPaymentMethods, deletePaymentMethod, type SavedCard } from '@/lib/paymentMethodActions';
 import styles from './page.module.css';
 
 type Tab = 'orders' | 'wantlist' | 'settings';
@@ -181,12 +190,212 @@ export default function Account() {
         {activeTab === 'settings' && (
           <>
             <h1 className={styles.pageTitle}>Account Settings</h1>
-            <div className={`glass-panel`} style={{ padding: '2rem' }}>
-              <p style={{ color: 'var(--text-muted)' }}>Settings functionality will be implemented in Phase 4 (Supabase Integration).</p>
-            </div>
+            <SettingsPanel />
           </>
         )}
       </div>
     </div>
+  );
+}
+
+function SettingsPanel() {
+  const [profile, setProfile] = useState({ name: '', phone: '' });
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressSaving, setAddressSaving] = useState(false);
+
+  const [cards, setCards] = useState<SavedCard[]>([]);
+
+  const refreshAddresses = () => listMyAddresses().then(setAddresses);
+  const refreshCards = () => listMyPaymentMethods().then(setCards);
+
+  useEffect(() => {
+    getMyProfile().then((p) => { if (p) setProfile(p); });
+    refreshAddresses();
+    refreshCards();
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileSaved(false);
+    const res = await updateMyProfile(profile);
+    setProfileSaving(false);
+    if (res.ok) {
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2500);
+    }
+  };
+
+  const handleAddAddress = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    setAddressSaving(true);
+    const res = await saveAddress({
+      label: String(data.get('label') ?? ''),
+      fullName: String(data.get('fullName') ?? ''),
+      phone: String(data.get('phone') ?? ''),
+      address: String(data.get('address') ?? ''),
+      city: String(data.get('city') ?? ''),
+      state: String(data.get('state') ?? ''),
+      zip: String(data.get('zip') ?? ''),
+      isDefault: data.get('isDefault') === 'on',
+    });
+    setAddressSaving(false);
+    if (res.ok) {
+      setShowAddressForm(false);
+      e.currentTarget.reset();
+      refreshAddresses();
+    }
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    await deleteAddress(id);
+    refreshAddresses();
+  };
+
+  const handleDeleteCard = async (id: string) => {
+    await deletePaymentMethod(id);
+    refreshCards();
+  };
+
+  return (
+    <>
+      <div className={`glass-panel ${styles.settingsSection}`} style={{ padding: '2rem' }}>
+        <h3>Profile</h3>
+        <form onSubmit={handleSaveProfile}>
+          <div className={styles.settingsRow}>
+            <div className={styles.settingsField}>
+              <label htmlFor="settingsName">Name</label>
+              <input
+                id="settingsName"
+                value={profile.name}
+                onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
+              />
+            </div>
+            <div className={styles.settingsField}>
+              <label htmlFor="settingsPhone">Phone</label>
+              <input
+                id="settingsPhone"
+                type="tel"
+                value={profile.phone}
+                onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
+              />
+            </div>
+          </div>
+          <button type="submit" className="btn-primary" disabled={profileSaving}>
+            {profileSaving ? 'Saving…' : 'Save'}
+          </button>
+          {profileSaved && (
+            <span style={{ marginLeft: '1rem', color: 'var(--accent-red)', fontSize: '0.9rem' }}>
+              Saved.
+            </span>
+          )}
+        </form>
+      </div>
+
+      <div className={`glass-panel ${styles.settingsSection}`} style={{ padding: '2rem' }}>
+        <h3>Saved Addresses</h3>
+        {addresses.length === 0 && (
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>No saved addresses yet.</p>
+        )}
+        {addresses.map((a) => (
+          <div key={a.id} className={styles.savedItemCard}>
+            <div>
+              <strong>{a.label || 'Address'}</strong>
+              {a.isDefault && <span className={styles.defaultBadge}>Default</span>}
+              <div className={styles.savedItemMeta}>
+                {a.fullName} &middot; {a.address}, {a.city}, {a.state} {a.zip}
+              </div>
+            </div>
+            <button className={styles.deleteBtn} onClick={() => handleDeleteAddress(a.id)}>
+              Remove
+            </button>
+          </div>
+        ))}
+
+        {showAddressForm ? (
+          <form onSubmit={handleAddAddress} style={{ marginTop: '1rem' }}>
+            <div className={styles.settingsRow}>
+              <div className={styles.settingsField}>
+                <label htmlFor="label">Label</label>
+                <input id="label" name="label" placeholder="Home" />
+              </div>
+              <div className={styles.settingsField}>
+                <label htmlFor="addrFullName">Full Name</label>
+                <input id="addrFullName" name="fullName" required />
+              </div>
+              <div className={styles.settingsField}>
+                <label htmlFor="addrPhone">Phone</label>
+                <input id="addrPhone" name="phone" type="tel" />
+              </div>
+            </div>
+            <div className={styles.settingsRow}>
+              <div className={styles.settingsField} style={{ flexBasis: '100%' }}>
+                <label htmlFor="addrAddress">Address</label>
+                <input id="addrAddress" name="address" required />
+              </div>
+            </div>
+            <div className={styles.settingsRow}>
+              <div className={styles.settingsField}>
+                <label htmlFor="addrCity">City</label>
+                <input id="addrCity" name="city" required />
+              </div>
+              <div className={styles.settingsField}>
+                <label htmlFor="addrState">State</label>
+                <input id="addrState" name="state" required />
+              </div>
+              <div className={styles.settingsField}>
+                <label htmlFor="addrZip">ZIP</label>
+                <input id="addrZip" name="zip" required />
+              </div>
+            </div>
+            <label className={styles.savedItemMeta} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input type="checkbox" name="isDefault" style={{ width: 'auto' }} />
+              Make this my default address
+            </label>
+            <div>
+              <button type="submit" className="btn-primary" disabled={addressSaving} style={{ marginRight: '0.75rem' }}>
+                {addressSaving ? 'Saving…' : 'Save Address'}
+              </button>
+              <button type="button" className={styles.deleteBtn} onClick={() => setShowAddressForm(false)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button className="btn-primary" onClick={() => setShowAddressForm(true)} style={{ marginTop: '0.5rem' }}>
+            + Add Address
+          </button>
+        )}
+      </div>
+
+      <div className={`glass-panel ${styles.settingsSection}`} style={{ padding: '2rem' }}>
+        <h3>Saved Payment Methods</h3>
+        {cards.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)' }}>
+            No saved cards yet. Check &ldquo;Save this card for next time&rdquo; at checkout to add one.
+          </p>
+        ) : (
+          cards.map((c) => (
+            <div key={c.id} className={styles.savedItemCard}>
+              <div>
+                <strong>{c.brand} •••• {c.last4}</strong>
+                {c.isDefault && <span className={styles.defaultBadge}>Default</span>}
+                {c.expMonth && c.expYear && (
+                  <div className={styles.savedItemMeta}>Expires {c.expMonth}/{c.expYear}</div>
+                )}
+              </div>
+              <button className={styles.deleteBtn} onClick={() => handleDeleteCard(c.id)}>
+                Remove
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </>
   );
 }

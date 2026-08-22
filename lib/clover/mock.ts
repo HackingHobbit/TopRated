@@ -7,6 +7,9 @@ import type {
   CloverItem,
   CloverChargeInput,
   CloverChargeResult,
+  CloverSaveCardInput,
+  CloverSaveCardResult,
+  CloverStoredChargeInput,
 } from './types';
 
 // Phantom Clover. Behaves like a connected merchant so the whole app flow
@@ -46,5 +49,31 @@ export class MockCloverClient implements CloverClient {
       amountCents: input.amountCents,
       simulated: true,
     };
+  }
+
+  async saveCard(input: CloverSaveCardInput): Promise<CloverSaveCardResult> {
+    return {
+      ok: true,
+      customerId: input.existingCustomerId || `mock_cus_${randomUUID().replace(/-/g, '').slice(0, 12)}`,
+      sourceId: `mock_src_${randomUUID().replace(/-/g, '').slice(0, 12)}`,
+      brand: 'Visa',
+      last4: '4242',
+      expMonth: 12,
+      expYear: new Date().getFullYear() + 3,
+    };
+  }
+
+  async chargeStoredCard(input: CloverStoredChargeInput): Promise<CloverChargeResult> {
+    return {
+      ok: true,
+      chargeId: `mock_ch_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+      status: 'succeeded',
+      amountCents: input.amountCents,
+      simulated: true,
+    };
+  }
+
+  async deleteStoredCard(): Promise<{ ok: boolean; error?: string }> {
+    return { ok: true };
   }
 }

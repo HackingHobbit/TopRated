@@ -88,6 +88,36 @@ export interface SaveCloverInput {
   ecommPrivateKey?: string;
 }
 
+export interface CloverSaveCardInput {
+  /** One-time card token from Clover.js createToken() (requires CVV). */
+  cardToken: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  /** If the customer already has a saved card, this replaces it. */
+  existingCustomerId?: string;
+}
+
+export interface CloverSaveCardResult {
+  ok: boolean;
+  customerId?: string;
+  sourceId?: string;
+  brand?: string;
+  last4?: string;
+  expMonth?: number;
+  expYear?: number;
+  error?: string;
+}
+
+export interface CloverStoredChargeInput {
+  amountCents: number;
+  currency?: string;
+  orderNumber: string;
+  customerId: string;
+  sourceId: string;
+  clientIp?: string;
+}
+
 export interface CloverClient {
   readonly mode: CloverMode;
   /** Lightweight credential/connectivity check for the admin "Test" button. */
@@ -96,4 +126,10 @@ export interface CloverClient {
   listInventory(): Promise<CloverItem[]>;
   /** Charge an order. Mock simulates success; live hits the Ecommerce API. */
   createCharge(input: CloverChargeInput): Promise<CloverChargeResult>;
+  /** Vault a card (Clover Customer + multi-pay token) for future charges. */
+  saveCard(input: CloverSaveCardInput): Promise<CloverSaveCardResult>;
+  /** Charge a previously-vaulted card — no CVV re-entry needed. */
+  chargeStoredCard(input: CloverStoredChargeInput): Promise<CloverChargeResult>;
+  /** Remove a vaulted card. */
+  deleteStoredCard(customerId: string, sourceId: string): Promise<{ ok: boolean; error?: string }>;
 }

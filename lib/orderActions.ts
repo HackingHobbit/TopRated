@@ -43,11 +43,19 @@ function orderNumber(prefix = 'TR'): string {
   return `${prefix}-${randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`;
 }
 
+export interface PlaceOrderOptions {
+  /** Vault this (new) card for future checkouts after a successful charge. */
+  saveCard?: boolean;
+  /** Pay with a previously-saved card instead of a fresh token. */
+  savedPaymentMethodId?: string;
+}
+
 export async function placeOrder(
   items: CheckoutItem[],
   shipping: ShippingDetails,
   /** Clover-hosted-field card token (client-side tokenized). Required in live mode. */
-  cardToken?: string
+  cardToken?: string,
+  opts?: PlaceOrderOptions
 ): Promise<PlaceOrderResult> {
   if (!items || items.length === 0) {
     return { ok: false, error: 'Your cart is empty.' };
@@ -112,18 +120,108 @@ export async function placeOrder(
     // admin dashboard (real orders use TR-).
     const clover = await getCloverClient();
     const number = orderNumber(clover.mode === 'mock' ? 'DEMO' : 'TR');
-    if (clover.mode === 'live' && !cardToken) {
-      return { ok: false, error: 'Payment could not be processed — missing card details.' };
-    }
     const forwardedFor = (await headers()).get('x-forwarded-for');
-    const charge = await clover.createCharge({
-      amountCents: Math.round(total * 100),
-      orderNumber: number,
-      source: cardToken,
-      clientIp: forwardedFor?.split(',')[0]?.trim(),
-    });
+    const clientIp = forwardedFor?.split(',')[0]?.trim();
+    const amountCents = Math.round(total * 100);
+
+    let charge;
+    let newCloverCustomerId: string | undefined;
+    let newSavedCard:
+      | { sourceId: string; brand: string; last4: string; expMonth?: number; expYear?: number }
+      | undefined;
+
+    if (clover.mode === 'live' && opts?.savedPaymentMethodId && user) {
+      // Pay with a previously-saved card — no fresh token needed.
+      const { data: pm } = await supabase
+        .from('payment_methods')
+        .select('clover_source_id')
+        .eq('id', opts.savedPaymentMethodId)
+        .eq('customer_id', user.id) // manual ownership check: service-role bypasses RLS
+        .maybeSingle();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('clover_customer_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (!pm || !profile?.clover_customer_id) {
+        return { ok: false, error: 'Saved card not found.' };
+      }
+      charge = await clover.chargeStoredCard({
+        amountCents,
+        orderNumber: number,
+        customerId: profile.clover_customer_id,
+        sourceId: pm.clover_source_id,
+        clientIp,
+      });
+    } else if (clover.mode === 'live' && opts?.saveCard && cardToken && user) {
+      // A one-time token can only be used once, so if we're saving the card
+      // we vault it first and charge the resulting vaulted source — we can't
+      // also hand the same raw token to a plain one-time charge afterward.
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('clover_customer_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      const [firstName, ...rest] = shipping.fullName.trim().split(/\s+/);
+      const saved = await clover.saveCard({
+        cardToken,
+        email: user.email ?? '',
+        firstName: firstName || shipping.fullName,
+        lastName: rest.join(' '),
+        existingCustomerId: profile?.clover_customer_id || undefined,
+      });
+      if (!saved.ok || !saved.customerId || !saved.sourceId) {
+        return { ok: false, error: saved.error || 'Could not save card.' };
+      }
+      charge = await clover.chargeStoredCard({
+        amountCents,
+        orderNumber: number,
+        customerId: saved.customerId,
+        sourceId: saved.sourceId,
+        clientIp,
+      });
+      if (charge.ok) {
+        newCloverCustomerId = saved.customerId;
+        newSavedCard = {
+          sourceId: saved.sourceId,
+          brand: saved.brand || '',
+          last4: saved.last4 || '',
+          expMonth: saved.expMonth,
+          expYear: saved.expYear,
+        };
+      }
+    } else {
+      if (clover.mode === 'live' && !cardToken) {
+        return { ok: false, error: 'Payment could not be processed — missing card details.' };
+      }
+      charge = await clover.createCharge({
+        amountCents,
+        orderNumber: number,
+        source: cardToken,
+        clientIp,
+      });
+    }
+
     if (!charge.ok) {
       return { ok: false, error: charge.error || 'Payment could not be processed.' };
+    }
+
+    // Persist the vaulted card now that payment succeeded — never before, so
+    // a failed charge never leaves an orphaned saved card. v1 supports one
+    // saved card per customer (matches Clover's replace-on-save semantics),
+    // so clear any prior row before inserting the new one.
+    if (newCloverCustomerId && newSavedCard && user) {
+      await supabase.from('profiles').update({ clover_customer_id: newCloverCustomerId }).eq('id', user.id);
+      await supabase.from('payment_methods').delete().eq('customer_id', user.id);
+      await supabase.from('payment_methods').insert({
+        customer_id: user.id,
+        clover_source_id: newSavedCard.sourceId,
+        brand: newSavedCard.brand,
+        last4: newSavedCard.last4,
+        exp_month: newSavedCard.expMonth ?? null,
+        exp_year: newSavedCard.expYear ?? null,
+        is_default: true,
+      });
     }
 
     const { data: order, error: oErr } = await supabase

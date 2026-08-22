@@ -67,6 +67,35 @@
   border-color: var(--accent-red);
 }
 
+.inputGroup select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.inputGroup select:focus {
+  outline: none;
+  border-color: var(--accent-red);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  cursor: pointer;
+}
+
+.checkboxRow input {
+  width: auto;
+}
+
 /* Container for a mounted Clover hosted-iframe field (CARD_NUMBER/DATE/CVV/
    POSTAL_CODE). The iframe itself can't be styled from this stylesheet —
    only its own container box, sized to match the plain inputs above. */

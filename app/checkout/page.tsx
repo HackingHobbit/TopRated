@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { placeOrder, type ShippingDetails } from '@/lib/orderActions';
 import { getCloverCheckoutConfig, type CloverCheckoutConfig } from '@/lib/cloverActions';
+import { listMyAddresses, type SavedAddress } from '@/lib/addressActions';
+import { listMyPaymentMethods, type SavedCard } from '@/lib/paymentMethodActions';
 import { FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, TAX_RATE, round2 } from '@/lib/pricing';
 import styles from './page.module.css';
 
@@ -68,7 +71,7 @@ function loadScriptOnce(src: string): Promise<void> {
 
 export default function CheckoutPage() {
   const { cart, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState(1);
@@ -85,6 +88,13 @@ export default function CheckoutPage() {
   const [cloverLoadError, setCloverLoadError] = useState<string | null>(null);
   const cloverRef = useRef<CloverInstance | null>(null);
 
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
+
+  const [paymentMethods, setPaymentMethods] = useState<SavedCard[]>([]);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string>('new');
+  const [saveCard, setSaveCard] = useState(false);
+
   // Non-secret checkout config (mode/environment/merchantId/public key) —
   // needed before the customer is logged in, so this is a public action.
   useEffect(() => {
@@ -96,6 +106,27 @@ export default function CheckoutPage() {
       cancelled = true;
     };
   }, []);
+
+  // Saved addresses/cards only exist for signed-in customers.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    listMyAddresses().then((list) => {
+      if (cancelled) return;
+      setAddresses(list);
+      const def = list.find((a) => a.isDefault) ?? list[0];
+      if (def) setSelectedAddressId(def.id);
+    });
+    listMyPaymentMethods().then((list) => {
+      if (cancelled) return;
+      setPaymentMethods(list);
+      const def = list.find((c) => c.isDefault) ?? list[0];
+      if (def) setSelectedPaymentId(def.id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   // Once we know we're in live mode, load Clover's hosted-iframe SDK and mount
   // the card fields. The PAN/CVC are typed directly into Clover's iframes and
@@ -150,6 +181,9 @@ export default function CheckoutPage() {
     );
   }
 
+  const usingSavedCard = selectedPaymentId !== 'new' && paymentMethods.some((c) => c.id === selectedPaymentId);
+  const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
+
   const handlePlaceOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -169,7 +203,7 @@ export default function CheckoutPage() {
     }));
 
     let cardToken: string | undefined;
-    if (cloverConfig?.mode === 'live') {
+    if (cloverConfig?.mode === 'live' && !usingSavedCard) {
       if (!cloverRef.current) {
         setError('The payment form is still loading — please wait a moment and try again.');
         return;
@@ -185,7 +219,10 @@ export default function CheckoutPage() {
     }
 
     setIsProcessing(true);
-    const res = await placeOrder(items, shipping, cardToken);
+    const res = await placeOrder(items, shipping, cardToken, {
+      savedPaymentMethodId: usingSavedCard ? selectedPaymentId : undefined,
+      saveCard: !usingSavedCard && saveCard,
+    });
     setIsProcessing(false);
     if (!res.ok) {
       setError(res.error ?? 'Sorry, we couldn’t place your order.');
@@ -222,62 +259,99 @@ export default function CheckoutPage() {
           <div className={styles.formColumn}>
             <h2>Checkout</h2>
 
+            {!isAuthenticated && (
+              <p className={styles.mockNotice}>
+                <strong>Have an account?</strong>{' '}
+                <Link href="/login?redirect=/checkout">Sign in</Link> for
+                faster checkout with saved addresses and payment methods, or{' '}
+                <Link href="/signup">create one</Link> — or just continue
+                below as a guest.
+              </p>
+            )}
+
             <form onSubmit={handlePlaceOrder} className={styles.checkoutForm}>
               <div className={styles.formSection}>
                 <h3>1. Shipping Information</h3>
-                <div className={styles.inputGroup}>
-                  <label htmlFor="fullName">Full Name</label>
-                  <input
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    defaultValue={user?.name || ''}
-                    autoComplete="name"
-                    required
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label htmlFor="address">Address</label>
-                  <input
-                    id="address"
-                    name="address"
-                    type="text"
-                    autoComplete="street-address"
-                    required
-                  />
-                </div>
-                <div className={styles.inputRow}>
+
+                {addresses.length > 0 && (
                   <div className={styles.inputGroup}>
-                    <label htmlFor="city">City</label>
+                    <label htmlFor="savedAddress">Use a saved address</label>
+                    <select
+                      id="savedAddress"
+                      value={selectedAddressId}
+                      onChange={(e) => setSelectedAddressId(e.target.value)}
+                    >
+                      {addresses.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.label || a.address} — {a.city}, {a.state}
+                        </option>
+                      ))}
+                      <option value="new">Enter a new address</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Re-keying on the selection remounts these inputs with fresh
+                    defaultValue — simplest way to "autofill" an uncontrolled form. */}
+                <div key={selectedAddressId}>
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="fullName">Full Name</label>
                     <input
-                      id="city"
-                      name="city"
+                      id="fullName"
+                      name="fullName"
                       type="text"
-                      autoComplete="address-level2"
+                      defaultValue={selectedAddress?.fullName || user?.name || ''}
+                      autoComplete="name"
                       required
                     />
                   </div>
                   <div className={styles.inputGroup}>
-                    <label htmlFor="state">State</label>
+                    <label htmlFor="address">Address</label>
                     <input
-                      id="state"
-                      name="state"
+                      id="address"
+                      name="address"
                       type="text"
-                      autoComplete="address-level1"
+                      defaultValue={selectedAddress?.address || ''}
+                      autoComplete="street-address"
                       required
                     />
                   </div>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="zip">ZIP Code</label>
-                    <input
-                      id="zip"
-                      name="zip"
-                      type="text"
-                      autoComplete="postal-code"
-                      inputMode="numeric"
-                      pattern="\d{5}(-\d{4})?"
-                      required
-                    />
+                  <div className={styles.inputRow}>
+                    <div className={styles.inputGroup}>
+                      <label htmlFor="city">City</label>
+                      <input
+                        id="city"
+                        name="city"
+                        type="text"
+                        defaultValue={selectedAddress?.city || ''}
+                        autoComplete="address-level2"
+                        required
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label htmlFor="state">State</label>
+                      <input
+                        id="state"
+                        name="state"
+                        type="text"
+                        defaultValue={selectedAddress?.state || ''}
+                        autoComplete="address-level1"
+                        required
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label htmlFor="zip">ZIP Code</label>
+                      <input
+                        id="zip"
+                        name="zip"
+                        type="text"
+                        defaultValue={selectedAddress?.zip || ''}
+                        autoComplete="postal-code"
+                        inputMode="numeric"
+                        pattern="\d{5}(-\d{4})?"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -287,6 +361,25 @@ export default function CheckoutPage() {
 
                 {cloverConfig === null && (
                   <p className={styles.mockNotice}>Loading payment form…</p>
+                )}
+
+                {cloverConfig?.mode === 'live' && paymentMethods.length > 0 && (
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="savedCard">Use a saved card</label>
+                    <select
+                      id="savedCard"
+                      value={selectedPaymentId}
+                      onChange={(e) => setSelectedPaymentId(e.target.value)}
+                    >
+                      {paymentMethods.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.brand} •••• {c.last4}
+                          {c.expMonth && c.expYear ? ` (exp ${c.expMonth}/${c.expYear})` : ''}
+                        </option>
+                      ))}
+                      <option value="new">Use a new card</option>
+                    </select>
+                  </div>
                 )}
 
                 {cloverConfig?.mode === 'mock' && (
@@ -338,7 +431,7 @@ export default function CheckoutPage() {
                   </>
                 )}
 
-                {cloverConfig?.mode === 'live' && (
+                {cloverConfig?.mode === 'live' && !usingSavedCard && (
                   <>
                     <p className={styles.mockNotice}>
                       Payments are processed securely by Clover. Your card
@@ -374,6 +467,16 @@ export default function CheckoutPage() {
                         <div id="clover-card-postal" className={styles.cloverField} />
                       </div>
                     </div>
+                    {isAuthenticated && (
+                      <label className={styles.checkboxRow}>
+                        <input
+                          type="checkbox"
+                          checked={saveCard}
+                          onChange={(e) => setSaveCard(e.target.checked)}
+                        />
+                        Save this card for next time
+                      </label>
+                    )}
                   </>
                 )}
               </div>

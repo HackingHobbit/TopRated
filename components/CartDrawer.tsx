@@ -4,27 +4,24 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/contexts/AuthContext';
 import styles from './CartDrawer.module.css';
 import { X, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { FREE_SHIPPING_THRESHOLD } from '@/lib/pricing';
 
 export default function CartDrawer() {
   const { isCartOpen, toggleCart, cart, updateQuantity, removeFromCart, totalPrice } = useCart();
-  const { isAuthenticated } = useAuth();
   const router = useRouter();
 
+  // Guest checkout is allowed — placeOrder supports a null customer_id, and
+  // the checkout page itself nudges sign-in for faster future purchases
+  // rather than gating the whole cart behind a forced /login redirect.
   const handleCheckout = () => {
     toggleCart(); // Close drawer
-    if (isAuthenticated) {
-      router.push('/checkout');
-    } else {
-      router.push('/login');
-    }
+    router.push('/checkout');
   };
 
-  const SHIPPING_THRESHOLD = 300;
-  const progress = Math.min((totalPrice / SHIPPING_THRESHOLD) * 100, 100);
-  const remainingForFreeShipping = Math.max(SHIPPING_THRESHOLD - totalPrice, 0);
+  const progress = Math.min((totalPrice / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const remainingForFreeShipping = Math.max(FREE_SHIPPING_THRESHOLD - totalPrice, 0);
 
   if (!isCartOpen) return null;
 

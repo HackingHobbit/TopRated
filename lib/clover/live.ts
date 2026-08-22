@@ -7,6 +7,9 @@ import type {
   CloverChargeInput,
   CloverChargeResult,
   CloverSettings,
+  CloverSaveCardInput,
+  CloverSaveCardResult,
+  CloverStoredChargeInput,
 } from './types';
 
 // Real Clover API client. Endpoints/hosts per Clover's developer docs:
@@ -109,6 +112,121 @@ export class LiveCloverClient implements CloverClient {
       return { ok: true, chargeId: data.id, status: data.status, amountCents: data.amount };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : 'charge error' };
+    }
+  }
+
+  // Vault a card: creates a Clover Customer (or updates the existing one)
+  // with the one-time card token as its payment source, per Clover's
+  // "Save a card for future transactions" flow. Returns a multi-pay source
+  // id we store (never the card number itself) for later charges.
+  //
+  // NOTE: the exact field names Clover returns for the vaulted card's brand/
+  // last4/expiry are inferred from docs, not yet confirmed against a live
+  // sandbox response — parsed defensively below so a mismatch degrades to a
+  // generic "card on file" display rather than breaking the save. Verify and
+  // tighten this once tested against real sandbox responses.
+  async saveCard(input: CloverSaveCardInput): Promise<CloverSaveCardResult> {
+    if (!this.s.ecommPrivateKey) {
+      return { ok: false, error: 'No Ecommerce private key configured.' };
+    }
+    try {
+      const url = input.existingCustomerId
+        ? `${ecommBase(this.s.environment)}/v1/customers/${encodeURIComponent(input.existingCustomerId)}`
+        : `${ecommBase(this.s.environment)}/v1/customers`;
+      const res = await fetch(url, {
+        method: input.existingCustomerId ? 'PUT' : 'POST',
+        headers: {
+          Authorization: `Bearer ${this.s.ecommPrivateKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: input.email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          source: input.cardToken,
+        }),
+        signal: AbortSignal.timeout(20_000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { ok: false, error: data?.error?.message || `Clover save-card failed (${res.status}).` };
+      }
+      const sources = Array.isArray(data.sources) ? data.sources : [];
+      const card = sources[sources.length - 1] ?? {};
+      return {
+        ok: true,
+        customerId: data.customerId ?? data.id ?? input.existingCustomerId,
+        sourceId: card.id ?? card.sourceId,
+        brand: card.cardType ?? card.brand,
+        last4: card.last4,
+        expMonth: card.expMonth,
+        expYear: card.expYear,
+      };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'save-card error' };
+    }
+  }
+
+  // Charge a vaulted card. Per Clover's card-on-file rules, subsequent
+  // customer-initiated charges declare stored_credentials instead of
+  // resending a CVV.
+  async chargeStoredCard(input: CloverStoredChargeInput): Promise<CloverChargeResult> {
+    if (!this.s.ecommPrivateKey) {
+      return { ok: false, error: 'No Ecommerce private key configured.' };
+    }
+    try {
+      const res = await fetch(`${ecommBase(this.s.environment)}/v1/charges`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.s.ecommPrivateKey}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'TopRatedCC/1.0',
+          'x-forwarded-for': input.clientIp || '0.0.0.0',
+        },
+        body: JSON.stringify({
+          amount: input.amountCents,
+          currency: input.currency || 'usd',
+          customer: input.customerId,
+          source: input.sourceId,
+          capture: true,
+          ecomind: 'ecom',
+          description: `Order ${input.orderNumber}`,
+          stored_credentials: {
+            sequence: 'SUBSEQUENT',
+            is_scheduled: false,
+            initiator: 'CARDHOLDER',
+          },
+        }),
+        signal: AbortSignal.timeout(20_000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { ok: false, error: data?.error?.message || `Clover charge failed (${res.status}).` };
+      }
+      return { ok: true, chargeId: data.id, status: data.status, amountCents: data.amount };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'charge error' };
+    }
+  }
+
+  async deleteStoredCard(customerId: string, sourceId: string): Promise<{ ok: boolean; error?: string }> {
+    if (!this.s.ecommPrivateKey) {
+      return { ok: false, error: 'No Ecommerce private key configured.' };
+    }
+    try {
+      const url = `${ecommBase(this.s.environment)}/v1/customers/${encodeURIComponent(customerId)}/sources/${encodeURIComponent(sourceId)}`;
+      const res = await fetch(url, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${this.s.ecommPrivateKey}` },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { ok: false, error: data?.error?.message || `Clover delete-card failed (${res.status}).` };
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'delete-card error' };
     }
   }
 }
