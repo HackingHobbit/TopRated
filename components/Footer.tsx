@@ -32,8 +32,8 @@ export default function Footer() {
         <div className={styles.footerSection}>
           <h4 className={styles.heading}>Shop</h4>
           <nav className={styles.links}>
-            <Link href="/shop?category=sealed">Sealed Products</Link>
-            <Link href="/shop?category=singles">Premium Singles</Link>
+            <Link href="/shop?type=sealed">Sealed Products</Link>
+            <Link href="/shop?type=single">Premium Singles</Link>
             <Link href="/shop?subCategory=NFL">Sports Cards</Link>
             <Link href="/shop?subCategory=Pokémon">TCG Cards</Link>
             <Link href="/shop?subCategory=Store Merch">Merchandise</Link>
