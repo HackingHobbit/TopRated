@@ -189,6 +189,12 @@ export async function placeOrder(
           expMonth: saved.expMonth,
           expYear: saved.expYear,
         };
+      } else {
+        // The card vaulted successfully but the charge itself failed —
+        // don't leave it sitting saved on Clover's side with no local
+        // record and no completed order. Best-effort; the charge error is
+        // what actually matters to the customer either way.
+        await clover.deleteStoredCard(saved.customerId, saved.sourceId).catch(() => {});
       }
     } else {
       if (clover.mode === 'live' && !cardToken) {

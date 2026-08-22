@@ -120,11 +120,14 @@ export class LiveCloverClient implements CloverClient {
   // "Save a card for future transactions" flow. Returns a multi-pay source
   // id we store (never the card number itself) for later charges.
   //
-  // NOTE: the exact field names Clover returns for the vaulted card's brand/
-  // last4/expiry are inferred from docs, not yet confirmed against a live
-  // sandbox response — parsed defensively below so a mismatch degrades to a
-  // generic "card on file" display rather than breaking the save. Verify and
-  // tighten this once tested against real sandbox responses.
+  // `sources` on the Customer response is a paginated list object
+  // ({ object: 'list', data: [...] }), NOT a plain array — reading it as a
+  // bare array (an earlier version of this code did exactly that) silently
+  // produces an empty list, so `sourceId` comes back undefined even though
+  // the card really was vaulted. That's a real bug that shipped once
+  // already: it saved the card on Clover's side (hence a real confirmation
+  // email) while our own code reported "could not save card" and aborted
+  // before ever attempting the charge. Handle both shapes defensively.
   async saveCard(input: CloverSaveCardInput): Promise<CloverSaveCardResult> {
     if (!this.s.ecommPrivateKey) {
       return { ok: false, error: 'No Ecommerce private key configured.' };
@@ -151,16 +154,21 @@ export class LiveCloverClient implements CloverClient {
       if (!res.ok) {
         return { ok: false, error: data?.error?.message || `Clover save-card failed (${res.status}).` };
       }
-      const sources = Array.isArray(data.sources) ? data.sources : [];
+      const sourcesRaw = data.sources;
+      const sources: Array<Record<string, unknown>> = Array.isArray(sourcesRaw)
+        ? sourcesRaw
+        : Array.isArray(sourcesRaw?.data)
+          ? sourcesRaw.data
+          : [];
       const card = sources[sources.length - 1] ?? {};
       return {
         ok: true,
         customerId: data.customerId ?? data.id ?? input.existingCustomerId,
-        sourceId: card.id ?? card.sourceId,
-        brand: card.cardType ?? card.brand,
-        last4: card.last4,
-        expMonth: card.expMonth,
-        expYear: card.expYear,
+        sourceId: (card.id ?? card.sourceId) as string | undefined,
+        brand: (card.brand ?? card.cardType) as string | undefined,
+        last4: card.last4 as string | undefined,
+        expMonth: (card.exp_month ?? card.expMonth) as number | undefined,
+        expYear: (card.exp_year ?? card.expYear) as number | undefined,
       };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : 'save-card error' };
@@ -186,7 +194,6 @@ export class LiveCloverClient implements CloverClient {
         body: JSON.stringify({
           amount: input.amountCents,
           currency: input.currency || 'usd',
-          customer: input.customerId,
           source: input.sourceId,
           capture: true,
           ecomind: 'ecom',

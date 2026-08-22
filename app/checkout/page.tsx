@@ -260,13 +260,21 @@ export default function CheckoutPage() {
             <h2>Checkout</h2>
 
             {!isAuthenticated && (
-              <p className={styles.mockNotice}>
-                <strong>Have an account?</strong>{' '}
-                <Link href="/login?redirect=/checkout">Sign in</Link> for
-                faster checkout with saved addresses and payment methods, or{' '}
-                <Link href="/signup">create one</Link> — or just continue
-                below as a guest.
-              </p>
+              <div className={styles.guestNudge}>
+                <div>
+                  <strong>Checking out faster next time?</strong>
+                  <p>Sign in or create an account to save your addresses and payment methods.</p>
+                </div>
+                <div className={styles.guestNudgeActions}>
+                  <Link href="/login?redirect=/checkout" className="btn-primary">
+                    Sign In
+                  </Link>
+                  <Link href="/signup" className="btn-secondary">
+                    Create Account
+                  </Link>
+                </div>
+                <p className={styles.guestNudgeSkip}>or continue below as a guest</p>
+              </div>
             )}
 
             <form onSubmit={handlePlaceOrder} className={styles.checkoutForm}>
