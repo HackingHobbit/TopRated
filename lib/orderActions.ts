@@ -44,10 +44,13 @@ function orderNumber(prefix = 'TR'): string {
 }
 
 export interface PlaceOrderOptions {
-  /** Vault this (new) card for future checkouts after a successful charge. */
-  saveCard?: boolean;
-  /** Pay with a previously-saved card instead of a fresh token. */
-  savedPaymentMethodId?: string;
+  /**
+   * A second, separate card token (from a second createToken() call on the
+   * same filled-in fields) used only to vault the card after the purchase
+   * has already succeeded via `cardToken`. Best-effort — never blocks or
+   * un-does the order if vaulting fails.
+   */
+  vaultCardToken?: string;
 }
 
 export async function placeOrder(
@@ -124,39 +127,34 @@ export async function placeOrder(
     const clientIp = forwardedFor?.split(',')[0]?.trim();
     const amountCents = Math.round(total * 100);
 
-    let charge;
+    // NOTE (temporary): charging a previously-vaulted card (chargeStoredCard)
+    // is not reliably working against Clover's Ecommerce API yet — extensive
+    // live testing got inconsistent/undocumented errors back. Rather than
+    // let that uncertainty block a real purchase, THIS charge always goes
+    // through the proven-reliable one-time-token path below, regardless of
+    // saveCard/savedPaymentMethodId. Saving a card (when requested) happens
+    // as a best-effort side effect *after* the purchase already succeeded,
+    // using a second, separate token — never gating the sale on it.
+    if (clover.mode === 'live' && !cardToken) {
+      return { ok: false, error: 'Payment could not be processed — missing card details.' };
+    }
+    const charge = await clover.createCharge({
+      amountCents,
+      orderNumber: number,
+      source: cardToken,
+      clientIp,
+    });
+
+    if (!charge.ok) {
+      return { ok: false, error: charge.error || 'Payment could not be processed.' };
+    }
+
     let newCloverCustomerId: string | undefined;
     let newSavedCard:
       | { sourceId: string; brand: string; last4: string; expMonth?: number; expYear?: number }
       | undefined;
 
-    if (clover.mode === 'live' && opts?.savedPaymentMethodId && user) {
-      // Pay with a previously-saved card — no fresh token needed.
-      const { data: pm } = await supabase
-        .from('payment_methods')
-        .select('clover_source_id')
-        .eq('id', opts.savedPaymentMethodId)
-        .eq('customer_id', user.id) // manual ownership check: service-role bypasses RLS
-        .maybeSingle();
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('clover_customer_id')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (!pm || !profile?.clover_customer_id) {
-        return { ok: false, error: 'Saved card not found.' };
-      }
-      charge = await clover.chargeStoredCard({
-        amountCents,
-        orderNumber: number,
-        customerId: profile.clover_customer_id,
-        sourceId: pm.clover_source_id,
-        clientIp,
-      });
-    } else if (clover.mode === 'live' && opts?.saveCard && cardToken && user) {
-      // A one-time token can only be used once, so if we're saving the card
-      // we vault it first and charge the resulting vaulted source — we can't
-      // also hand the same raw token to a plain one-time charge afterward.
+    if (clover.mode === 'live' && opts?.vaultCardToken && user) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('clover_customer_id')
@@ -164,23 +162,15 @@ export async function placeOrder(
         .maybeSingle();
       const [firstName, ...rest] = shipping.fullName.trim().split(/\s+/);
       const saved = await clover.saveCard({
-        cardToken,
+        cardToken: opts.vaultCardToken,
         email: user.email ?? '',
         firstName: firstName || shipping.fullName,
         lastName: rest.join(' '),
         existingCustomerId: profile?.clover_customer_id || undefined,
       });
-      if (!saved.ok || !saved.customerId || !saved.sourceId) {
-        return { ok: false, error: saved.error || 'Could not save card.' };
-      }
-      charge = await clover.chargeStoredCard({
-        amountCents,
-        orderNumber: number,
-        customerId: saved.customerId,
-        sourceId: saved.sourceId,
-        clientIp,
-      });
-      if (charge.ok) {
+      // Best-effort only — the order is already placed either way, so a
+      // failure here never surfaces as an order-placement error.
+      if (saved.ok && saved.customerId && saved.sourceId) {
         newCloverCustomerId = saved.customerId;
         newSavedCard = {
           sourceId: saved.sourceId,
@@ -189,27 +179,7 @@ export async function placeOrder(
           expMonth: saved.expMonth,
           expYear: saved.expYear,
         };
-      } else {
-        // The card vaulted successfully but the charge itself failed —
-        // don't leave it sitting saved on Clover's side with no local
-        // record and no completed order. Best-effort; the charge error is
-        // what actually matters to the customer either way.
-        await clover.deleteStoredCard(saved.customerId, saved.sourceId).catch(() => {});
       }
-    } else {
-      if (clover.mode === 'live' && !cardToken) {
-        return { ok: false, error: 'Payment could not be processed — missing card details.' };
-      }
-      charge = await clover.createCharge({
-        amountCents,
-        orderNumber: number,
-        source: cardToken,
-        clientIp,
-      });
-    }
-
-    if (!charge.ok) {
-      return { ok: false, error: charge.error || 'Payment could not be processed.' };
     }
 
     // Persist the vaulted card now that payment succeeded — never before, so

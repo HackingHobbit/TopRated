@@ -204,36 +204,20 @@ export class LiveCloverClient implements CloverClient {
     }
   }
 
-  // Charge a vaulted card. Per Clover's card-on-file rules, subsequent
-  // customer-initiated charges declare stored_credentials instead of
-  // resending a CVV.
+  // Charge a vaulted card. NOT currently called from the checkout flow —
+  // live testing against a real sandbox (8+ request variations, including
+  // the `customer` field both present and absent, as a string and as a
+  // nested object) got inconsistent, undocumented errors ("Customer with id
+  // <sourceId> not found" and generic "Invalid value in JSON") that don't
+  // match Clover's public docs. Vaulting a card itself works reliably
+  // (confirmed via real confirmation emails); charging the vaulted result
+  // is what's unresolved. Kept implemented and reachable for whenever this
+  // gets sorted out (Clover support, or a doc update) rather than deleted.
   async chargeStoredCard(input: CloverStoredChargeInput): Promise<CloverChargeResult> {
     if (!this.s.ecommPrivateKey) {
       return { ok: false, error: 'No Ecommerce private key configured.' };
     }
     try {
-      // Re-added `customer`: a card vaulted on a Customer apparently can't be
-      // resolved by source id alone — dropping this field on the last pass
-      // (based on a generic /v1/charges schema example that wasn't specific
-      // to card-on-file) produced "Customer with id <..> not found", even
-      // though the card really was vaulted. The more specific "save a card"
-      // doc always paired source with customer for this exact scenario.
-      const body = {
-        amount: input.amountCents,
-        currency: input.currency || 'usd',
-        customer: input.customerId,
-        source: input.sourceId,
-        capture: true,
-        ecomind: 'ecom',
-        description: `Order ${input.orderNumber}`,
-        stored_credentials: {
-          sequence: 'SUBSEQUENT',
-          is_scheduled: false,
-          initiator: 'CARDHOLDER',
-        },
-      };
-      // TEMPORARY diagnostic — remove once confirmed working end to end.
-      console.log('[clover.chargeStoredCard] request body:', JSON.stringify(body));
       const res = await fetch(`${ecommBase(this.s.environment)}/v1/charges`, {
         method: 'POST',
         headers: {
@@ -242,12 +226,23 @@ export class LiveCloverClient implements CloverClient {
           'User-Agent': 'TopRatedCC/1.0',
           'x-forwarded-for': input.clientIp || '0.0.0.0',
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          amount: input.amountCents,
+          currency: input.currency || 'usd',
+          customer: input.customerId,
+          source: input.sourceId,
+          capture: true,
+          ecomind: 'ecom',
+          description: `Order ${input.orderNumber}`,
+          stored_credentials: {
+            sequence: 'SUBSEQUENT',
+            is_scheduled: false,
+            initiator: 'CARDHOLDER',
+          },
+        }),
         signal: AbortSignal.timeout(20_000),
       });
       const data = await res.json().catch(() => ({}));
-      // TEMPORARY diagnostic — remove once confirmed working end to end.
-      console.log('[clover.chargeStoredCard] response:', res.status, JSON.stringify(data));
       if (!res.ok) {
         return { ok: false, error: data?.error?.message || `Clover charge failed (${res.status}).` };
       }
