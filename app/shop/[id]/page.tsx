@@ -79,11 +79,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
         <div className={styles.priceBlock}>
           <span className={styles.price}>${product.price.toFixed(2)}</span>
-          {product.isSale && (
-            <span className={styles.originalPrice}>
-              ${(product.price * 1.2).toFixed(2)}
-            </span>
-          )}
         </div>
 
         <p className={styles.description}>

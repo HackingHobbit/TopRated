@@ -137,12 +137,6 @@
   color: var(--accent-red);
 }
 
-.originalPrice {
-  font-size: 1.25rem;
-  color: var(--text-muted);
-  text-decoration: line-through;
-}
-
 .description {
   color: var(--text-secondary);
   line-height: 1.6;
