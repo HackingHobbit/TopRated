@@ -330,6 +330,85 @@ export async function deleteDemoOrders(): Promise<{
   }
 }
 
+export const ORDER_STATUSES = [
+  'pending',
+  'processing',
+  'shipped',
+  'delivered',
+  'canceled',
+  'refunded',
+] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+const RESTOCKING_STATUSES: OrderStatus[] = ['canceled', 'refunded'];
+
+/**
+ * Admin-only: move an order through its fulfillment lifecycle. Moving *into*
+ * canceled/refunded from any other status restocks the order's items (and
+ * logs an inventory_transactions row per item) — moving between the two
+ * terminal statuses, or re-saving the same one, never double-restocks.
+ * Reversing out of canceled/refunded back to an active status does NOT
+ * re-deduct stock; that's a rare manual-correction case left for an admin to
+ * true up by hand if it ever comes up.
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus
+): Promise<{ ok: boolean; error?: string }> {
+  await assertAdmin();
+  if (!ORDER_STATUSES.includes(status)) {
+    return { ok: false, error: 'Invalid status.' };
+  }
+  const supabase = await getSupabaseServer();
+  if (!supabase) return { ok: false, error: 'Not available.' };
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('order_number, status')
+    .eq('id', orderId)
+    .maybeSingle();
+  if (!order) return { ok: false, error: 'Order not found.' };
+
+  const alreadyRestocked = RESTOCKING_STATUSES.includes(order.status as OrderStatus);
+  if (RESTOCKING_STATUSES.includes(status) && !alreadyRestocked) {
+    const user = await getCurrentUser();
+    const { data: items } = await supabase
+      .from('order_items')
+      .select('product_id, quantity')
+      .eq('order_id', orderId);
+
+    for (const item of (items ?? []) as { product_id: string | null; quantity: number }[]) {
+      if (!item.product_id) continue;
+      const { data: product } = await supabase
+        .from('products')
+        .select('quantity')
+        .eq('id', item.product_id)
+        .maybeSingle();
+      if (product) {
+        await supabase
+          .from('products')
+          .update({ quantity: (product.quantity ?? 0) + item.quantity })
+          .eq('id', item.product_id);
+      }
+      await supabase.from('inventory_transactions').insert({
+        product_id: item.product_id,
+        delta: item.quantity,
+        reason: 'return',
+        reference_id: order.order_number,
+        created_by: user?.id ?? null,
+      });
+    }
+  }
+
+  const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/admin/orders');
+  revalidatePath('/admin');
+  revalidatePath('/account');
+  return { ok: true };
+}
+
 /** The signed-in customer's own orders (newest first), with line items.
  *  RLS ("orders self select") restricts this to the caller's own orders. */
 export async function getMyOrders(): Promise<MyOrder[]> {

@@ -196,6 +196,19 @@
   text-transform: uppercase;
 }
 
+.statusSelect {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.statusSelect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .pending {
   background: rgba(245, 158, 11, 0.2);
   color: #f59e0b;
