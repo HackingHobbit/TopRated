@@ -106,6 +106,19 @@ button {
   box-shadow: 0 6px 16px rgba(237, 28, 46, 0.3);
 }
 
+.btn-primary:disabled {
+  background-color: var(--bg-elevated);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn-primary:disabled:hover {
+  background-color: var(--bg-elevated);
+  transform: none;
+  box-shadow: none;
+}
+
 .btn-secondary {
   background-color: transparent;
   color: #fff;
