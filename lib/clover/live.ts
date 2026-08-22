@@ -212,6 +212,28 @@ export class LiveCloverClient implements CloverClient {
       return { ok: false, error: 'No Ecommerce private key configured.' };
     }
     try {
+      // Re-added `customer`: a card vaulted on a Customer apparently can't be
+      // resolved by source id alone — dropping this field on the last pass
+      // (based on a generic /v1/charges schema example that wasn't specific
+      // to card-on-file) produced "Customer with id <..> not found", even
+      // though the card really was vaulted. The more specific "save a card"
+      // doc always paired source with customer for this exact scenario.
+      const body = {
+        amount: input.amountCents,
+        currency: input.currency || 'usd',
+        customer: input.customerId,
+        source: input.sourceId,
+        capture: true,
+        ecomind: 'ecom',
+        description: `Order ${input.orderNumber}`,
+        stored_credentials: {
+          sequence: 'SUBSEQUENT',
+          is_scheduled: false,
+          initiator: 'CARDHOLDER',
+        },
+      };
+      // TEMPORARY diagnostic — remove once confirmed working end to end.
+      console.log('[clover.chargeStoredCard] request body:', JSON.stringify(body));
       const res = await fetch(`${ecommBase(this.s.environment)}/v1/charges`, {
         method: 'POST',
         headers: {
@@ -220,22 +242,12 @@ export class LiveCloverClient implements CloverClient {
           'User-Agent': 'TopRatedCC/1.0',
           'x-forwarded-for': input.clientIp || '0.0.0.0',
         },
-        body: JSON.stringify({
-          amount: input.amountCents,
-          currency: input.currency || 'usd',
-          source: input.sourceId,
-          capture: true,
-          ecomind: 'ecom',
-          description: `Order ${input.orderNumber}`,
-          stored_credentials: {
-            sequence: 'SUBSEQUENT',
-            is_scheduled: false,
-            initiator: 'CARDHOLDER',
-          },
-        }),
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(20_000),
       });
       const data = await res.json().catch(() => ({}));
+      // TEMPORARY diagnostic — remove once confirmed working end to end.
+      console.log('[clover.chargeStoredCard] response:', res.status, JSON.stringify(data));
       if (!res.ok) {
         return { ok: false, error: data?.error?.message || `Clover charge failed (${res.status}).` };
       }
