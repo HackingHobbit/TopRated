@@ -204,15 +204,16 @@ export class LiveCloverClient implements CloverClient {
     }
   }
 
-  // Charge a vaulted card. NOT currently called from the checkout flow —
-  // live testing against a real sandbox (8+ request variations, including
-  // the `customer` field both present and absent, as a string and as a
-  // nested object) got inconsistent, undocumented errors ("Customer with id
-  // <sourceId> not found" and generic "Invalid value in JSON") that don't
-  // match Clover's public docs. Vaulting a card itself works reliably
-  // (confirmed via real confirmation emails); charging the vaulted result
-  // is what's unresolved. Kept implemented and reachable for whenever this
-  // gets sorted out (Clover support, or a doc update) rather than deleted.
+  // Charge a vaulted card. Confirmed working by direct testing against a
+  // real sandbox (not from docs, which never state this plainly): `source`
+  // is just the CUSTOMER id itself — not a separate `customer` field, and
+  // not the card's own sub-id from the customer's `sources` list. Clover
+  // charges whatever card is on file for that customer, which is exactly
+  // why this only works when a customer has a single card — matching the
+  // one-saved-card-per-customer model already used here. Every other
+  // combination tried (customer field present as a string or object, the
+  // sources[]-array card id as `source`) failed with errors that don't
+  // match Clover's public docs.
   async chargeStoredCard(input: CloverStoredChargeInput): Promise<CloverChargeResult> {
     if (!this.s.ecommPrivateKey) {
       return { ok: false, error: 'No Ecommerce private key configured.' };
@@ -229,8 +230,7 @@ export class LiveCloverClient implements CloverClient {
         body: JSON.stringify({
           amount: input.amountCents,
           currency: input.currency || 'usd',
-          customer: input.customerId,
-          source: input.sourceId,
+          source: input.customerId,
           capture: true,
           ecomind: 'ecom',
           description: `Order ${input.orderNumber}`,

@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { placeOrder, type ShippingDetails } from '@/lib/orderActions';
 import { getCloverCheckoutConfig, type CloverCheckoutConfig } from '@/lib/cloverActions';
 import { listMyAddresses, type SavedAddress } from '@/lib/addressActions';
+import { listMyPaymentMethods, type SavedCard } from '@/lib/paymentMethodActions';
 import { FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, TAX_RATE, round2 } from '@/lib/pricing';
 import styles from './page.module.css';
 
@@ -90,6 +91,8 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
 
+  const [paymentMethods, setPaymentMethods] = useState<SavedCard[]>([]);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string>('new');
   const [saveCard, setSaveCard] = useState(false);
 
   // Non-secret checkout config (mode/environment/merchantId/public key) —
@@ -104,10 +107,7 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  // Saved addresses only exist for signed-in customers. (Saved *cards* are
-  // manageable in Account Settings, but not yet offered here as a way to
-  // skip re-entering a card — see the note above placeOrder in
-  // lib/orderActions.ts for why.)
+  // Saved addresses/cards only exist for signed-in customers.
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
@@ -116,6 +116,12 @@ export default function CheckoutPage() {
       setAddresses(list);
       const def = list.find((a) => a.isDefault) ?? list[0];
       if (def) setSelectedAddressId(def.id);
+    });
+    listMyPaymentMethods().then((list) => {
+      if (cancelled) return;
+      setPaymentMethods(list);
+      const def = list.find((c) => c.isDefault) ?? list[0];
+      if (def) setSelectedPaymentId(def.id);
     });
     return () => {
       cancelled = true;
@@ -176,6 +182,7 @@ export default function CheckoutPage() {
   }
 
   const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
+  const usingSavedCard = selectedPaymentId !== 'new' && paymentMethods.some((c) => c.id === selectedPaymentId);
 
   const handlePlaceOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -197,7 +204,7 @@ export default function CheckoutPage() {
 
     let cardToken: string | undefined;
     let vaultCardToken: string | undefined;
-    if (cloverConfig?.mode === 'live') {
+    if (cloverConfig?.mode === 'live' && !usingSavedCard) {
       if (!cloverRef.current) {
         setError('The payment form is still loading — please wait a moment and try again.');
         return;
@@ -224,7 +231,10 @@ export default function CheckoutPage() {
     }
 
     setIsProcessing(true);
-    const res = await placeOrder(items, shipping, cardToken, { vaultCardToken });
+    const res = await placeOrder(items, shipping, cardToken, {
+      vaultCardToken,
+      savedPaymentMethodId: usingSavedCard ? selectedPaymentId : undefined,
+    });
     setIsProcessing(false);
     if (!res.ok) {
       setError(res.error ?? 'Sorry, we couldn’t place your order.');
@@ -373,6 +383,25 @@ export default function CheckoutPage() {
                   <p className={styles.mockNotice}>Loading payment form…</p>
                 )}
 
+                {cloverConfig?.mode === 'live' && paymentMethods.length > 0 && (
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="savedCard">Use a saved card</label>
+                    <select
+                      id="savedCard"
+                      value={selectedPaymentId}
+                      onChange={(e) => setSelectedPaymentId(e.target.value)}
+                    >
+                      {paymentMethods.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.brand && c.last4 ? `${c.brand} •••• ${c.last4}` : 'Card on file'}
+                          {c.expMonth && c.expYear ? ` (exp ${c.expMonth}/${c.expYear})` : ''}
+                        </option>
+                      ))}
+                      <option value="new">Use a new card</option>
+                    </select>
+                  </div>
+                )}
+
                 {cloverConfig?.mode === 'mock' && (
                   <>
                     <p className={styles.mockNotice}>
@@ -422,7 +451,7 @@ export default function CheckoutPage() {
                   </>
                 )}
 
-                {cloverConfig?.mode === 'live' && (
+                {cloverConfig?.mode === 'live' && !usingSavedCard && (
                   <>
                     <p className={styles.mockNotice}>
                       Payments are processed securely by Clover. Your card
