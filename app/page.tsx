@@ -164,13 +164,12 @@ export default async function Home() {
               </a>
             </div>
             <div className={styles.mapPlaceholder}>
-              <Image
-                src="/map.png"
-                alt="Store Location Map"
-                className={styles.mapImage}
-                width={600}
-                height={400}
-                sizes="(max-width: 900px) 100vw, 600px"
+              <iframe
+                src="https://www.google.com/maps?q=513+David+Clayton+Ln.,+Windsor,+CA+95492&output=embed"
+                title="Map to Top Rated Cards & Collectibles"
+                className={styles.mapFrame}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
           </div>
