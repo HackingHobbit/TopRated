@@ -36,7 +36,7 @@ export default function Footer() {
             <Link href="/shop?type=single">Premium Singles</Link>
             <Link href="/shop?subCategory=NFL">Sports Cards</Link>
             <Link href="/shop?subCategory=TCG">TCG Cards</Link>
-            <Link href="/shop?subCategory=Store Merch">Merchandise</Link>
+            <Link href="/shop?subCategory=Accessories">Merchandise</Link>
           </nav>
         </div>
 
