@@ -68,7 +68,14 @@ button {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  /* Horizontal-only, deliberately not shorthand: several components combine
+     this class with their own module styles on the same element (e.g.
+     TrustBand's .inner) to set vertical padding. A `padding: 0 1rem`
+     shorthand here would zero that out whenever this rule happens to win
+     the cascade — which varies between dev and the production CSS chunk
+     order, so it worked locally and silently no-opped in prod. */
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 .text-gradient {
