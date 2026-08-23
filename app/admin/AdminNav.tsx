@@ -15,7 +15,7 @@ const LINKS = [
   { href: '/admin/integrations', label: 'Integrations' },
 ];
 
-export default function AdminNav() {
+export default function AdminNav({ openMessageCount = 0 }: { openMessageCount?: number }) {
   const pathname = usePathname();
 
   return (
@@ -37,6 +37,9 @@ export default function AdminNav() {
               aria-current={isActive ? 'page' : undefined}
             >
               {link.label}
+              {link.href === '/admin/messages' && openMessageCount > 0 && (
+                <span className={styles.navBadge}>{openMessageCount}</span>
+              )}
             </Link>
           );
         })}

@@ -81,6 +81,7 @@ export async function submitContactMessage(input: ContactInput): Promise<Contact
   if (mErr) return { ok: false, error: mErr.message };
 
   revalidatePath('/admin/messages');
+  revalidatePath('/admin', 'layout');
   revalidatePath('/account');
   return { ok: true, isGuest: !user };
 }
@@ -154,6 +155,7 @@ export async function replyToThread(threadId: string, body: string): Promise<{ o
 
   revalidatePath('/account');
   revalidatePath('/admin/messages');
+  revalidatePath('/admin', 'layout');
   return { ok: true };
 }
 
@@ -222,6 +224,7 @@ export async function replyAsAdmin(threadId: string, body: string): Promise<{ ok
   if (tErr) return { ok: false, error: tErr.message };
 
   revalidatePath('/admin/messages');
+  revalidatePath('/admin', 'layout');
   revalidatePath('/account');
   return { ok: true };
 }
@@ -239,6 +242,20 @@ export async function setThreadStatus(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath('/admin/messages');
+  revalidatePath('/admin', 'layout');
   revalidatePath('/account');
   return { ok: true };
+}
+
+/** Admin-only: count of open threads, for the sidebar badge. */
+export async function getOpenThreadCount(): Promise<number> {
+  await assertAdmin();
+  const supabase = await getSupabaseServer();
+  if (!supabase) return 0;
+  const { count, error } = await supabase
+    .from('support_threads')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'open');
+  if (error) return 0;
+  return count ?? 0;
 }

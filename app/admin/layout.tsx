@@ -3,6 +3,7 @@ import AdminNav from './AdminNav';
 import styles from './page.module.css';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { getCurrentRole } from '@/lib/supabase/server';
+import { getOpenThreadCount } from '@/lib/supportActions';
 
 /**
  * Shared admin shell. The sidebar lives here so the four admin routes
@@ -43,9 +44,11 @@ export default async function AdminLayout({
     notFound();
   }
 
+  const openMessageCount = await getOpenThreadCount();
+
   return (
     <div className={`container ${styles.adminContainer}`}>
-      <AdminNav />
+      <AdminNav openMessageCount={openMessageCount} />
       <main className={styles.mainContent}>{children}</main>
     </div>
   );
