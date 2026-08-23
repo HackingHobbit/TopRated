@@ -42,6 +42,37 @@
   z-index: 10;
 }
 
+.favoriteBtn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 11, 15, 0.7);
+  color: white;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: all var(--transition-fast);
+}
+
+.favoriteBtn:hover {
+  background: rgba(10, 11, 15, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.favoriteBtn.favorited {
+  color: var(--accent-red);
+  border-color: rgba(237, 28, 46, 0.5);
+  background: rgba(237, 28, 46, 0.15);
+}
+
 .badge {
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-full);

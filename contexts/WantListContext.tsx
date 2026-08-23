@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Product } from '@/lib/types';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -11,13 +11,44 @@ interface WantListContextType {
   isFavorite: (productId: string) => boolean;
 }
 
+const WANTLIST_STORAGE_KEY = 'tr_wantlist';
+
 const WantListContext = createContext<WantListContextType | undefined>(
   undefined
 );
 
 export function WantListProvider({ children }: { children: React.ReactNode }) {
   const [wantList, setWantList] = useState<Product[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const { addToast } = useToast();
+
+  // Load the saved want list once on mount (client only). We start empty so
+  // the server-rendered and first client render match, then hydrate from
+  // storage — same pattern as CartContext.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(WANTLIST_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(parsed)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setWantList(parsed);
+      }
+    } catch {
+      /* corrupt or unavailable storage — start with an empty want list */
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist on every change — but only after the initial load, so the empty
+  // starting state can't overwrite a saved want list.
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(WANTLIST_STORAGE_KEY, JSON.stringify(wantList));
+    } catch {
+      /* ignore quota / private-mode errors */
+    }
+  }, [wantList, hydrated]);
 
   const totalFavorites = useMemo(() => wantList.length, [wantList]);
 

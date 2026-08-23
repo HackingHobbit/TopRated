@@ -89,16 +89,24 @@ export async function updateProduct(
     revalidatePath('/shop');
     revalidatePath(`/shop/${id}`);
 
-    // Return shape matching the legacy Product type. Top-level category is
-    // derived from category_id on read — see lib/db.ts for the lookup.
+    // Top-level category is derived from category_id — same categories
+    // table + Map lookup as rowToProduct() in lib/db.ts.
+    const { data: cats } = await supabase
+      .from('categories')
+      .select('id, top_level');
+    const topByCategory = new Map(
+      (cats ?? []).map((c: { id: string; top_level: string }) => [c.id, c.top_level])
+    );
+    const subCategory = data.category_id ?? 'Accessories';
+
     return {
       id: data.id,
       name: data.name,
       description: data.description,
       price: Number(data.price),
       image: data.image,
-      category: '', // re-read from /admin/inventory query; not used by caller
-      subCategory: data.category_id ?? 'Accessories',
+      category: topByCategory.get(subCategory) ?? 'accessories',
+      subCategory,
       isSealed: data.is_sealed,
       isSale: data.is_sale,
       isFeatured: data.is_featured,
