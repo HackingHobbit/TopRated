@@ -64,7 +64,10 @@ export default function Footer() {
               <Phone size={16} className={styles.icon} />{' '}
               <a href="tel:+17076200783">(707) 620-0783</a>
             </p>
-            <p><Mail size={16} className={styles.icon} /> support@topratedcards.com</p>
+            <p>
+              <Mail size={16} className={styles.icon} />{' '}
+              <Link href="/contact">Send us a message</Link>
+            </p>
           </div>
         </div>
         

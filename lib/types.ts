@@ -93,3 +93,27 @@ export interface AdminUser {
   loyaltyPoints: number;
   createdAt: string;
 }
+
+// One message within a support thread.
+export interface SupportMessage {
+  id: string;
+  sender: 'customer' | 'admin';
+  body: string;
+  createdAt: string;
+}
+
+// A customer-support conversation. `customerId` is null for guest
+// submissions — guestName/guestEmail are the only way to reach them back,
+// since a guest has no account to log into and see a reply.
+export interface SupportThread {
+  id: string;
+  customerId: string | null;
+  customerName: string;
+  customerEmail: string;
+  isGuest: boolean;
+  subject: string;
+  status: 'open' | 'closed';
+  createdAt: string;
+  updatedAt: string;
+  messages: SupportMessage[];
+}

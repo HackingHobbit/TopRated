@@ -17,9 +17,11 @@ import {
   type SavedAddress,
 } from '@/lib/addressActions';
 import { listMyPaymentMethods, deletePaymentMethod, type SavedCard } from '@/lib/paymentMethodActions';
+import { getMyThreads, replyToThread } from '@/lib/supportActions';
+import type { SupportThread } from '@/lib/types';
 import styles from './page.module.css';
 
-type Tab = 'orders' | 'wantlist' | 'settings';
+type Tab = 'orders' | 'wantlist' | 'messages' | 'settings';
 
 export default function Account() {
   const { user, isAuthenticated, isAuthReady, signOut } = useAuth();
@@ -86,14 +88,20 @@ export default function Account() {
           >
             Order History
           </button>
-          <button 
-            onClick={() => setActiveTab('wantlist')} 
+          <button
+            onClick={() => setActiveTab('wantlist')}
             className={`${styles.navLink} ${activeTab === 'wantlist' ? styles.active : ''}`}
           >
             Want List ({wantList.length})
           </button>
-          <button 
-            onClick={() => setActiveTab('settings')} 
+          <button
+            onClick={() => setActiveTab('messages')}
+            className={`${styles.navLink} ${activeTab === 'messages' ? styles.active : ''}`}
+          >
+            Messages
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
             className={`${styles.navLink} ${activeTab === 'settings' ? styles.active : ''}`}
           >
             Settings
@@ -184,6 +192,13 @@ export default function Account() {
                 ))}
               </div>
             )}
+          </>
+        )}
+
+        {activeTab === 'messages' && (
+          <>
+            <h1 className={styles.pageTitle}>Messages</h1>
+            <MessagesTab />
           </>
         )}
 
@@ -396,6 +411,134 @@ function SettingsPanel() {
           ))
         )}
       </div>
+    </>
+  );
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function MessagesTab() {
+  const [threads, setThreads] = useState<SupportThread[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [reply, setReply] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getMyThreads()
+      .then((t) => { if (!cancelled) { setThreads(t); setLoading(false); } })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleToggle = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+    setReply('');
+  };
+
+  const handleReply = async (threadId: string) => {
+    if (!reply.trim()) return;
+    setSending(true);
+    const res = await replyToThread(threadId, reply.trim());
+    setSending(false);
+    if (!res.ok) return;
+    setThreads((prev) =>
+      prev.map((t) =>
+        t.id === threadId
+          ? {
+              ...t,
+              status: 'open',
+              messages: [
+                ...t.messages,
+                { id: `local-${Date.now()}`, sender: 'customer', body: reply.trim(), createdAt: new Date().toISOString() },
+              ],
+            }
+          : t
+      )
+    );
+    setReply('');
+  };
+
+  if (loading) {
+    return (
+      <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+        Loading messages…
+      </div>
+    );
+  }
+
+  if (threads.length === 0) {
+    return (
+      <div className="glass-panel" style={{ padding: '4rem', textAlign: 'center' }}>
+        <p style={{ color: 'var(--text-muted)' }}>You haven&apos;t sent us any messages yet.</p>
+        <Link href="/contact" className="btn-primary" style={{ marginTop: '1rem', display: 'inline-block' }}>
+          Contact Us
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {threads.map((t) => {
+        const expanded = expandedId === t.id;
+        const lastMessage = t.messages[t.messages.length - 1];
+        return (
+          <div key={t.id} className={`glass-panel ${styles.threadCard}`}>
+            <div className={styles.threadCardHeader} onClick={() => handleToggle(t.id)}>
+              <div>
+                <div className={styles.threadSubject}>{t.subject}</div>
+                {!expanded && lastMessage && (
+                  <div className={styles.threadPreview}>{lastMessage.body}</div>
+                )}
+                <span className={styles.date}>Updated {formatDateTime(t.updatedAt)}</span>
+              </div>
+              <span className={styles.status}>{t.status === 'open' ? 'Open' : 'Closed'}</span>
+            </div>
+
+            {expanded && (
+              <>
+                <div className={styles.messageThread}>
+                  {t.messages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`${styles.messageBubble} ${m.sender === 'customer' ? styles.messageBubbleCustomer : styles.messageBubbleAdmin}`}
+                    >
+                      <div className={styles.messageBubbleMeta}>
+                        {m.sender === 'customer' ? 'You' : 'Top Rated Support'} &middot; {formatDateTime(m.createdAt)}
+                      </div>
+                      <p>{m.body}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className={styles.replyBox}>
+                  <textarea
+                    placeholder="Type a reply…"
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => handleReply(t.id)}
+                    disabled={sending || !reply.trim()}
+                  >
+                    {sending ? 'Sending…' : 'Send Reply'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }
