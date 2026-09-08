@@ -30,6 +30,7 @@ export default function ToastContainer() {
           <button 
             onClick={() => removeToast(toast.id)} 
             className={styles.closeBtn}
+            aria-label={`Dismiss notification: ${toast.title}`}
           >
             <X size={16} />
           </button>

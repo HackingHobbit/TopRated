@@ -1,6 +1,13 @@
 import Image from 'next/image';
 import styles from './page.module.css';
 
+export const metadata = {
+  title: 'About Us',
+  description:
+    'Meet the collectors behind Top Rated Cards & Collectibles, your neighborhood card shop in Windsor, California.',
+  alternates: { canonical: '/about' },
+};
+
 // Owner cards on the About page — the three stylized "trading card" portraits
 // Joseph supplied. The image files live in public/assets/ (committed to the
 // repo so they render on the live Netlify build, not just locally):

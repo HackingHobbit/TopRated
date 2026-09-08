@@ -52,8 +52,9 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
         
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
-            <label>Name</label>
+            <label htmlFor="product-name">Name</label>
             <input 
+              id="product-name"
               type="text" 
               value={formData.name} 
               onChange={e => setFormData({...formData, name: e.target.value})}
@@ -62,8 +63,9 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
           </div>
           
           <div className={styles.formGroup}>
-            <label>Description</label>
+            <label htmlFor="product-description">Description</label>
             <textarea 
+              id="product-description"
               value={formData.description} 
               onChange={e => setFormData({...formData, description: e.target.value})}
               required
@@ -72,8 +74,9 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
           </div>
 
           <div className={styles.formGroup}>
-            <label>Price ($)</label>
+            <label htmlFor="product-price">Price ($)</label>
             <input
+              id="product-price"
               type="number"
               step="0.01"
               value={formData.price}
@@ -83,7 +86,7 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
           </div>
 
           <div className={styles.formGroup}>
-            <label>Image</label>
+            <label htmlFor="product-image-url">Image</label>
             <div className={styles.imageRow}>
               {/* Arbitrary remote hosts — plain img (next/image would need every
                   vendor domain whitelisted). Shows the actual current image. */}
@@ -117,6 +120,7 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
             </div>
             {showUrl && (
               <input
+                id="product-image-url"
                 type="url"
                 className={styles.urlInput}
                 value={formData.image}
@@ -127,8 +131,9 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.checkLabel}>
+            <label className={styles.checkLabel} htmlFor="product-image-representative">
               <input
+                id="product-image-representative"
                 type="checkbox"
                 checked={formData.imageRepresentative}
                 onChange={e => setFormData({...formData, imageRepresentative: e.target.checked})}

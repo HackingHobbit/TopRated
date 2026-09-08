@@ -5,6 +5,7 @@ export const metadata = {
   title: 'Policies | Top Rated',
   description:
     'Privacy, shipping, returns, and terms of service for Top Rated Cards & Collectibles.',
+  alternates: { canonical: '/policies' },
 };
 
 export default function PoliciesPage() {

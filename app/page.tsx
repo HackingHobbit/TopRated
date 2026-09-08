@@ -8,6 +8,13 @@ import type { Product } from '@/lib/types';
 import { getProducts } from '@/lib/db';
 import { getVisibleEvents } from '@/lib/events';
 
+export const metadata = {
+  title: 'Trading Cards & Collectibles',
+  description:
+    'Shop premium sealed sports cards, trading card games, rare singles, and collectibles from Top Rated Cards & Collectibles.',
+  alternates: { canonical: '/' },
+};
+
 interface ProductSectionProps {
   title: string;
   cta: { href: string; label: string };

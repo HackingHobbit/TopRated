@@ -9,6 +9,7 @@ import { CartProvider } from '@/contexts/CartContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { WantListProvider } from '@/contexts/WantListContext';
+import { SITE_URL } from '@/lib/site';
 
 // TODO(perf): swap the Google Fonts @import in globals.css for next/font/google:
 //
@@ -24,9 +25,30 @@ import { WantListProvider } from '@/contexts/WantListContext';
 // fonts.googleapis.com at build time, which not every CI sandbox allows.
 
 export const metadata: Metadata = {
-  title: 'Top Rated | Cards & Collectibles',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Top Rated Cards & Collectibles',
+    template: '%s | Top Rated Cards & Collectibles',
+  },
   description:
-    'Modern storefront for premium trading cards, sealed products, and collectibles.',
+    'Shop premium trading cards, sealed products, rare singles, and collectibles from Top Rated Cards & Collectibles.',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'Top Rated Cards & Collectibles',
+    title: 'Top Rated Cards & Collectibles',
+    description:
+      'Shop premium trading cards, sealed products, rare singles, and collectibles.',
+    url: '/',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Top Rated Cards & Collectibles',
+    description:
+      'Shop premium trading cards, sealed products, rare singles, and collectibles.',
+  },
 };
 
 export const viewport: Viewport = {

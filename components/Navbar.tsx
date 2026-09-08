@@ -138,7 +138,7 @@ export default function Navbar() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button type="submit" className={styles.searchBtn}>
+            <button type="submit" className={styles.searchBtn} aria-label="Search products">
               <Search size={18} />
             </button>
           </form>
@@ -153,14 +153,14 @@ export default function Navbar() {
           <button className={styles.iconBtn} onClick={handleUserClick} aria-label={isAuthenticated ? 'My account' : 'Sign in'}>
             <User size={22} />
           </button>
-          <button className={styles.cartBtn} onClick={toggleCart}>
+          <button className={styles.cartBtn} onClick={toggleCart} aria-label={`Open cart${totalItems > 0 ? ` (${totalItems} items)` : ''}`}>
             <ShoppingCart size={22} />
             {totalItems > 0 && (
               <span className={styles.cartBadge}>{totalItems}</span>
             )}
           </button>
           
-          <button className={styles.mobileMenuBtn} onClick={() => setIsMobileMenuOpen(true)}>
+          <button className={styles.mobileMenuBtn} onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu">
             <Menu size={24} />
           </button>
         </div>
@@ -177,7 +177,7 @@ export default function Navbar() {
             height={44}
             unoptimized
           />
-          <button className={styles.closeMenuBtn} onClick={() => setIsMobileMenuOpen(false)}>
+          <button className={styles.closeMenuBtn} onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu">
             <X size={28} />
           </button>
         </div>
@@ -190,7 +190,7 @@ export default function Navbar() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button type="submit" className={styles.mobileSearchBtn}>
+          <button type="submit" className={styles.mobileSearchBtn} aria-label="Search products">
             <Search size={20} />
           </button>
         </form>

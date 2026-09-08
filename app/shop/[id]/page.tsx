@@ -1,12 +1,49 @@
 import Image from 'next/image';
 import { Info } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { getProductById } from '@/lib/db';
+import { absoluteUrl } from '@/lib/site';
 import ProductDetailClient from './ProductDetailClient';
 import styles from './page.module.css';
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getProductById(id);
+  if (!product) {
+    return {
+      title: 'Product Not Found',
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const description = product.description || `Shop ${product.name} at Top Rated Cards & Collectibles.`;
+  const image = product.image.startsWith('http')
+    ? product.image
+    : absoluteUrl(product.image);
+
+  return {
+    title: product.name,
+    description,
+    alternates: { canonical: `/shop/${encodeURIComponent(product.id)}` },
+    openGraph: {
+      type: 'website',
+      title: product.name,
+      description,
+      url: `/shop/${encodeURIComponent(product.id)}`,
+      images: [{ url: image, alt: product.name }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      description,
+      images: [image],
+    },
+  };
 }
 
 export default async function ProductDetailPage({ params }: PageProps) {
@@ -18,8 +55,48 @@ export default async function ProductDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  const productImage = product.image.startsWith('http')
+    ? product.image
+    : absoluteUrl(product.image);
+  const availability = product.isOutOfStock
+    ? 'https://schema.org/OutOfStock'
+    : product.isPreOrder
+      ? 'https://schema.org/PreOrder'
+      : 'https://schema.org/InStock';
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description,
+    image: [productImage],
+    sku: product.id,
+    category: product.subCategory,
+    brand: {
+      '@type': 'Brand',
+      name: 'Top Rated Cards & Collectibles',
+    },
+    offers: {
+      '@type': 'Offer',
+      url: absoluteUrl(`/shop/${encodeURIComponent(product.id)}`),
+      priceCurrency: 'USD',
+      price: product.price.toFixed(2),
+      availability,
+      seller: {
+        '@type': 'Organization',
+        name: 'Top Rated Cards & Collectibles',
+      },
+    },
+  };
+
   return (
-    <div className={`container ${styles.pdpContainer}`}>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productJsonLd).replace(/</g, '\\u003c'),
+        }}
+      />
+      <div className={`container ${styles.pdpContainer}`}>
       <div className={styles.imageSection}>
         <div className={styles.mainImageWrapper}>
           <Image
@@ -96,6 +173,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
           <ProductDetailClient product={product} />
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

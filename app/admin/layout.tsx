@@ -1,9 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 import AdminNav from './AdminNav';
 import styles from './page.module.css';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { getCurrentRole } from '@/lib/supabase/server';
 import { getOpenThreadCount } from '@/lib/supportActions';
+
+export const metadata: Metadata = {
+  title: 'Admin Dashboard',
+  robots: { index: false, follow: false },
+};
 
 /**
  * Shared admin shell. The sidebar lives here so the four admin routes
