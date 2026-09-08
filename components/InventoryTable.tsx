@@ -98,6 +98,7 @@ export default function InventoryTable({ initialProducts }: { initialProducts: P
             <th>Sale</th>
             <th>Featured</th>
             <th>New</th>
+            <th>Pre-Order</th>
             <th>OOS</th>
             <th>Actions</th>
           </tr>
@@ -125,6 +126,11 @@ export default function InventoryTable({ initialProducts }: { initialProducts: P
                 </button>
               </td>
               <td>
+                <button onClick={() => toggleFlag(product.id, 'isPreOrder')} className={product.isPreOrder ? styles.flagOn : styles.flagOff}>
+                  {product.isPreOrder ? 'ON' : 'OFF'}
+                </button>
+              </td>
+              <td>
                 <button onClick={() => toggleFlag(product.id, 'isOutOfStock')} className={product.isOutOfStock ? styles.flagOn : styles.flagOff}>
                   {product.isOutOfStock ? 'OOS' : 'IN'}
                 </button>
@@ -138,7 +144,7 @@ export default function InventoryTable({ initialProducts }: { initialProducts: P
           ))}
           {filtered.length === 0 && (
             <tr>
-              <td colSpan={9} className={styles.empty}>No products match these filters.</td>
+                <td colSpan={10} className={styles.empty}>No products match these filters.</td>
             </tr>
           )}
         </tbody>

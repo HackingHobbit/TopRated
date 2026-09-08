@@ -1,0 +1,275 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.formCard,
+.listCard {
+  padding: 1.5rem;
+}
+
+.formHeader,
+.listHeader,
+.eventTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formCard label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.formCard input,
+.formCard textarea {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 0.75rem;
+  color: var(--text-primary);
+  padding: 0.85rem 1rem;
+  font: inherit;
+}
+
+.formCard textarea {
+  resize: vertical;
+}
+
+.dateRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.imageUploader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.uploadImageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.uploadImageButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.imagePreviewWrap {
+  position: relative;
+  width: 100%;
+  max-width: 18rem;
+}
+
+.imagePreview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 0.75rem;
+}
+
+.removeImage {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.85);
+  color: white;
+  cursor: pointer;
+}
+
+.replaceImage {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: rgba(15, 23, 42, 0.85);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.uploadError {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.checkboxRow {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checkboxRow input {
+  width: auto;
+}
+
+.listCard {
+  min-height: 420px;
+}
+
+.listHeader {
+  margin-bottom: 1rem;
+}
+
+.listHeader h2,
+.formHeader h2,
+.eventTitleRow h3 {
+  margin: 0;
+}
+
+.listHeader span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.empty {
+  color: var(--text-muted);
+  margin: 1rem 0 0;
+}
+
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.eventItem {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 1rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.thumb,
+.thumbPlaceholder {
+  width: 96px;
+  height: 96px;
+  border-radius: 0.85rem;
+  object-fit: cover;
+  background: rgba(148, 163, 184, 0.12);
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.eventInfo {
+  min-width: 0;
+}
+
+.eventInfo h3 {
+  margin: 0;
+}
+
+.eventInfo p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.eventInfo small {
+  color: var(--text-muted);
+}
+
+.visibilityTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.eventActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.iconButton.danger {
+  color: #fca5a5;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dateRow {
+    grid-template-columns: 1fr;
+  }
+
+  .eventItem {
+    grid-template-columns: 1fr;
+  }
+
+  .eventActions {
+    justify-content: flex-end;
+  }
+}

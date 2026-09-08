@@ -10,6 +10,7 @@ const LINKS = [
   { href: '/admin/singles', label: 'Custom Inventory' },
   { href: '/admin/orders', label: 'Orders' },
   { href: '/admin/messages', label: 'Messages' },
+  { href: '/admin/events', label: 'Events' },
   { href: '/admin/customers', label: 'Customers' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/integrations', label: 'Integrations' },

@@ -271,6 +271,7 @@ export const getCustomers = cache(async (): Promise<CustomerRow[]> => {
     supabase
       .from('profiles')
       .select('id, name, email, role, loyalty_points, created_at')
+      .eq('role', 'customer')
       .order('created_at', { ascending: false }),
     supabase.from('orders').select('customer_id, total'),
   ]);
@@ -359,7 +360,7 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
       .order('placed_at', { ascending: false })
       .limit(200),
     supabase.from('products').select('id, is_out_of_stock'),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'customer'),
     supabase.from('orders').select('id', { count: 'exact', head: true }).like('order_number', 'DEMO-%'),
   ]);
 

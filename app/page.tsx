@@ -6,6 +6,7 @@ import ScrollReveal from '@/components/ScrollReveal';
 import type { Product } from '@/lib/types';
 
 import { getProducts } from '@/lib/db';
+import { getVisibleEvents } from '@/lib/events';
 
 interface ProductSectionProps {
   title: string;
@@ -36,6 +37,7 @@ function ProductSection({ title, cta, products }: ProductSectionProps) {
 
 export default async function Home() {
   const allProducts = await getProducts();
+  const visibleEvents = await getVisibleEvents();
   const topFeatured = allProducts.filter((p) => p.isFeatured).slice(0, 4);
   const newReleases = allProducts.filter((p) => p.isNewRelease).slice(0, 4);
   const preOrders = allProducts.filter((p) => p.isPreOrder).slice(0, 4);
@@ -110,31 +112,42 @@ export default async function Home() {
           <div className={styles.sectionHeader}>
             <h2>News &amp; Upcoming Events</h2>
           </div>
-          <div className={styles.eventsGrid}>
+          {visibleEvents.length === 0 ? (
             <div className={`glass-panel ${styles.eventCard}`}>
-              <h3>Friday Night Magic</h3>
-              <p className={styles.eventDate}>Every Friday @ 7:00 PM</p>
-              <p>
-                Join us for our weekly MTG Commander night. Prizes for top
-                players!
+              <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                No upcoming events at the moment.
               </p>
             </div>
-            <div className={`glass-panel ${styles.eventCard}`}>
-              <h3>Pokémon Trade &amp; Play</h3>
-              <p className={styles.eventDate}>Saturdays @ 12:00 PM</p>
-              <p>
-                Bring your binders! A family-friendly event for trading and
-                learning to play.
-              </p>
+          ) : (
+            <div className={styles.eventsGrid}>
+              {visibleEvents.map((event) => (
+                <div key={event.id} className={`glass-panel ${styles.eventCard}`}>
+                  {event.image ? (
+                    <img
+                      src={event.image}
+                      alt={event.title}
+                      style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 12 }}
+                    />
+                  ) : null}
+                  <h3>{event.title}</h3>
+                  <p className={styles.eventDate}>
+                    {new Date(event.startDate).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                    {' - '}
+                    {new Date(event.endDate).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                  <p>{event.description}</p>
+                </div>
+              ))}
             </div>
-            <div className={`glass-panel ${styles.eventCard}`}>
-              <h3>New Set Release Party</h3>
-              <p className={styles.eventDate}>Coming Next Month</p>
-              <p>
-                Midnight release draft event. Pre-register to secure your spot!
-              </p>
-            </div>
-          </div>
+          )}
         </section>
       </ScrollReveal>
 

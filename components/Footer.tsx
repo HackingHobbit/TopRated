@@ -44,10 +44,10 @@ export default function Footer() {
           <h4 className={styles.heading}>Customer Service</h4>
           <nav className={styles.links}>
             <Link href="/account">My Account</Link>
-            <Link href="#">Shipping Policy</Link>
-            <Link href="#">Returns & Refunds</Link>
-            <Link href="#">Authenticity Guarantee</Link>
-            <Link href="#">FAQ</Link>
+            <Link href="/policies#shipping-policy">Shipping Policy</Link>
+            <Link href="/policies#returns-policy">Returns & Refunds</Link>
+            <Link href="/policies#privacy-policy">Privacy Policy</Link>
+            <Link href="/policies#terms-of-service">Terms of Service</Link>
           </nav>
         </div>
 
