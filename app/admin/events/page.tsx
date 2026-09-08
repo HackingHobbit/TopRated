@@ -1,9 +1,12 @@
-import { getEvents } from '@/lib/events';
+import { getEvents, getVisibleEvents } from '@/lib/events';
 import EventsClient from './EventsClient';
 import adminStyles from '../page.module.css';
 
 export default async function AdminEventsPage() {
-  const events = await getEvents();
+  const [events, visibleEvents] = await Promise.all([
+    getEvents(),
+    getVisibleEvents(),
+  ]);
 
   return (
     <>
@@ -13,7 +16,10 @@ export default async function AdminEventsPage() {
         </div>
       </div>
 
-      <EventsClient initialEvents={events} />
+      <EventsClient
+        initialEvents={events}
+        activeEventIds={visibleEvents.map((event) => event.id)}
+      />
     </>
   );
 }

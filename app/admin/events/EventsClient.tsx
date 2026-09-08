@@ -34,22 +34,23 @@ function sortEvents(events: EventItem[]) {
   );
 }
 
-export default function EventsClient({ initialEvents }: { initialEvents: EventItem[] }) {
+export default function EventsClient({
+  initialEvents,
+  activeEventIds,
+}: {
+  initialEvents: EventItem[];
+  activeEventIds: string[];
+}) {
   const router = useRouter();
   const { addToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<EventFormState>(EMPTY_FORM);
   const [events, setEvents] = useState<EventItem[]>(sortEvents(initialEvents));
+  const activeIds = useMemo(() => new Set(activeEventIds), [activeEventIds]);
 
   const upcoming = useMemo(
-    () =>
-      events.filter((event) => {
-        const start = new Date(event.startDate).getTime();
-        const end = new Date(event.endDate).getTime();
-        const expiresAt = end + 24 * 60 * 60 * 1000;
-        return event.isVisible && Number.isFinite(start) && Number.isFinite(end) && Date.now() < expiresAt;
-      }),
-    [events]
+    () => events.filter((event) => activeIds.has(event.id)),
+    [activeIds, events]
   );
 
   const save = (e: React.FormEvent) => {

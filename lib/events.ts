@@ -24,6 +24,19 @@ export interface EventInput {
   isVisible: boolean;
 }
 
+export function isEventActive(event: EventItem, now: number): boolean {
+  const start = new Date(event.startDate).getTime();
+  const end = new Date(event.endDate).getTime();
+  const expiresAt = end + 24 * 60 * 60 * 1000;
+
+  return (
+    event.isVisible &&
+    Number.isFinite(start) &&
+    Number.isFinite(end) &&
+    now < expiresAt
+  );
+}
+
 const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
 
 interface DBShape {
@@ -75,10 +88,11 @@ export const getEvents = cache(async (): Promise<EventItem[]> => {
         .select('*')
         .order('start_date', { ascending: true });
 
-      if (!error && Array.isArray(data)) {
-        return data.map((row) => normalizeEvent(row as Record<string, unknown>));
-      }
+      if (error) throw new Error(`Could not load events: ${error.message}`);
+      return (data ?? []).map((row) => normalizeEvent(row as Record<string, unknown>));
     }
+
+    throw new Error('Supabase client unavailable.');
   }
 
   return readEventsFromJson();
@@ -88,19 +102,7 @@ export const getVisibleEvents = cache(async (): Promise<EventItem[]> => {
   const events = await getEvents();
   const now = Date.now();
 
-  return events.filter((event) => {
-    const start = new Date(event.startDate).getTime();
-    const end = new Date(event.endDate).getTime();
-    const expiresAt = end + 24 * 60 * 60 * 1000;
-
-    return (
-      event.isVisible &&
-      Number.isFinite(start) &&
-      Number.isFinite(end) &&
-      now >= start &&
-      now < expiresAt
-    );
-  });
+  return events.filter((event) => isEventActive(event, now));
 });
 
 export async function upsertEvent(input: EventInput): Promise<EventItem> {
@@ -131,10 +133,12 @@ export async function upsertEvent(input: EventInput): Promise<EventItem> {
         ? await supabase.from('events').update(payload).eq('id', cleanInput.id).select().single()
         : await supabase.from('events').insert(payload).select().single();
 
-      if (!error && data) {
-        return normalizeEvent(data as Record<string, unknown>);
-      }
+      if (error) throw new Error(`Could not save event: ${error.message}`);
+      if (!data) throw new Error('Could not save event.');
+      return normalizeEvent(data as Record<string, unknown>);
     }
+
+    throw new Error('Supabase client unavailable.');
   }
 
   const list = await readEventsFromJson();
@@ -162,8 +166,11 @@ export async function deleteEventRecord(id: string): Promise<void> {
     const supabase = await getSupabaseServer();
     if (supabase) {
       const { error } = await supabase.from('events').delete().eq('id', id);
-      if (!error) return;
+      if (error) throw new Error(`Could not delete event: ${error.message}`);
+      return;
     }
+
+    throw new Error('Supabase client unavailable.');
   }
 
   const list = await readEventsFromJson();
