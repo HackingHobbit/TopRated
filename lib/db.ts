@@ -402,6 +402,18 @@ export interface AdminOrderRow {
   customer: string;
   status: string;
   total: number;
+  shippingAddress: {
+    fullName?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+  } | null;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
 }
 
 /** Full order list for the admin Orders page (real data — see lib/orderActions
@@ -415,7 +427,7 @@ export const getAdminOrders = cache(async (): Promise<AdminOrderRow[]> => {
 
   const { data: orders } = await supabase
     .from('orders')
-    .select('id, order_number, status, total, placed_at, shipping_address')
+    .select('id, order_number, status, total, placed_at, shipping_address, order_items(product_name, quantity, unit_price)')
     .order('placed_at', { ascending: false });
 
   return ((orders ?? []) as Array<{
@@ -425,6 +437,11 @@ export const getAdminOrders = cache(async (): Promise<AdminOrderRow[]> => {
     total: number | string;
     placed_at: string;
     shipping_address: { fullName?: string } | null;
+    order_items: Array<{
+      product_name: string;
+      quantity: number;
+      unit_price: number | string;
+    }> | null;
   }>).map((o) => ({
     id: o.id,
     orderNumber: o.order_number,
@@ -432,6 +449,12 @@ export const getAdminOrders = cache(async (): Promise<AdminOrderRow[]> => {
     customer: o.shipping_address?.fullName || 'Guest',
     status: o.status || 'pending',
     total: Number(o.total) || 0,
+    shippingAddress: o.shipping_address,
+    items: (o.order_items ?? []).map((item) => ({
+      productName: item.product_name,
+      quantity: item.quantity,
+      unitPrice: Number(item.unit_price) || 0,
+    })),
   }));
 });
 

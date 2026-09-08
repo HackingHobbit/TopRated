@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { updateOrderStatus } from '@/lib/orderActions';
 import { ORDER_STATUSES, type OrderStatus } from '@/lib/orderStatus';
@@ -45,6 +45,7 @@ export default function OrdersTable({ initialOrders }: { initialOrders: AdminOrd
   const [query, setQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrderRow | null>(null);
   const { addToast } = useToast();
 
   const toggleStatus = (s: OrderStatus) => {
@@ -174,7 +175,15 @@ export default function OrdersTable({ initialOrders }: { initialOrders: AdminOrd
         <tbody>
           {filtered.map((o) => (
             <tr key={o.id}>
-              <td>{o.orderNumber}</td>
+              <td>
+                <button
+                  type="button"
+                  className={styles.orderLink}
+                  onClick={() => setSelectedOrder(o)}
+                >
+                  {o.orderNumber}
+                </button>
+              </td>
               <td>{formatDate(o.placedAt)}</td>
               <td>{o.customer}</td>
               <td>
@@ -211,6 +220,79 @@ export default function OrdersTable({ initialOrders }: { initialOrders: AdminOrd
           )}
         </tbody>
       </table>
+
+      {selectedOrder && (
+        <div className={styles.orderModalBackdrop} role="presentation" onClick={() => setSelectedOrder(null)}>
+          <section
+            className={`glass-panel ${styles.orderModal}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="order-detail-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.orderModalHeader}>
+              <div>
+                <p className={styles.orderModalEyebrow}>Fulfillment details</p>
+                <h2 id="order-detail-title">Order {selectedOrder.orderNumber}</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.iconAction}
+                onClick={() => setSelectedOrder(null)}
+                aria-label="Close order details"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.orderDetailGrid}>
+              <div>
+                <h3>Ship to</h3>
+                <p>
+                  <strong>{selectedOrder.shippingAddress?.fullName || selectedOrder.customer}</strong>
+                  <br />
+                  {selectedOrder.shippingAddress?.address || 'No address recorded'}
+                  {selectedOrder.shippingAddress?.city && (
+                    <>
+                      <br />
+                      {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}{' '}
+                      {selectedOrder.shippingAddress.zip}
+                    </>
+                  )}
+                </p>
+              </div>
+              <div>
+                <h3>Order status</h3>
+                <p>{statusLabel(selectedOrder.status)}</p>
+                <p className={styles.orderDetailMuted}>
+                  Placed {formatDate(selectedOrder.placedAt)}
+                </p>
+              </div>
+            </div>
+
+            <h3>Pack and send</h3>
+            <div className={styles.orderItemsList}>
+              {selectedOrder.items.length === 0 ? (
+                <p className={styles.orderDetailMuted}>No line items recorded.</p>
+              ) : (
+                selectedOrder.items.map((item, index) => (
+                  <div key={`${item.productName}-${index}`} className={styles.orderItemRow}>
+                    <div>
+                      <strong>{item.productName}</strong>
+                      <span>{item.quantity} × ${item.unitPrice.toFixed(2)}</span>
+                    </div>
+                    <strong>${(item.quantity * item.unitPrice).toFixed(2)}</strong>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className={styles.orderDetailTotal}>
+              <span>Total charged</span>
+              <strong>${selectedOrder.total.toFixed(2)}</strong>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
