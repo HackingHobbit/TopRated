@@ -144,6 +144,18 @@
   align-items: center;
 }
 
+.iconBtnLoggedIn {
+  color: var(--accent-red);
+}
+
+.iconBtnLoggedIn:hover {
+  color: #ff5360;
+}
+
+.iconBtnGuest {
+  color: var(--text-secondary);
+}
+
 .iconBtn:hover {
   color: var(--text-primary);
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShoppingCart, User, Search, Menu, X, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, CircleUserRound, LogIn, Search, Menu, X, LayoutDashboard } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './Navbar.module.css';
@@ -150,8 +150,12 @@ export default function Navbar() {
             </Link>
           )}
 
-          <button className={styles.iconBtn} onClick={handleUserClick} aria-label={isAuthenticated ? 'My account' : 'Sign in'}>
-            <User size={22} />
+          <button
+            className={`${styles.iconBtn} ${isAuthenticated ? styles.iconBtnLoggedIn : styles.iconBtnGuest}`}
+            onClick={handleUserClick}
+            aria-label={isAuthenticated ? 'My account' : 'Sign in'}
+          >
+            {isAuthenticated ? <CircleUserRound size={22} /> : <LogIn size={21} />}
           </button>
           <button className={styles.cartBtn} onClick={toggleCart} aria-label={`Open cart${totalItems > 0 ? ` (${totalItems} items)` : ''}`}>
             <ShoppingCart size={22} />
@@ -206,7 +210,7 @@ export default function Navbar() {
           <hr className={styles.mobileDivider} />
           
           <button className={styles.mobileActionBtn} onClick={handleUserClick}>
-            <User size={20} />
+            {isAuthenticated ? <CircleUserRound size={20} /> : <LogIn size={20} />}
             {isAuthenticated ? 'My Account' : 'Sign In'}
           </button>
 

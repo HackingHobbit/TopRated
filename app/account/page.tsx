@@ -75,12 +75,6 @@ export default function Account() {
           </div>
         </div>
         
-        <div className={styles.loyaltyCard}>
-          <h3>Loyalty Points</h3>
-          <p className={styles.points}>{user.loyaltyPoints}</p>
-          <span className={styles.rankBadge}>Gold Tier</span>
-        </div>
-
         <nav className={styles.nav}>
           <button 
             onClick={() => setActiveTab('orders')} 

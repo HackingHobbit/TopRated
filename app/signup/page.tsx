@@ -72,8 +72,7 @@ export default function Signup() {
       <div className={`glass-panel ${loginStyles.loginCard}`}>
         <h1 className={loginStyles.title}>Create Your Account</h1>
         <p className={loginStyles.subtitle}>
-          Join Top Rated to track your orders, save favorites, and earn
-          loyalty points on every purchase.
+          Join Top Rated to track your orders and save favorites.
         </p>
 
         {authMode === 'mock' && (

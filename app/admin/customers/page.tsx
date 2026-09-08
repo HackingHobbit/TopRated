@@ -2,13 +2,6 @@ import Link from 'next/link';
 import { getCustomers } from '@/lib/db';
 import styles from '../page.module.css';
 
-const TIER_BADGE: Record<string, string> = {
-  Bronze: styles.tierBronze,
-  Silver: styles.tierSilver,
-  Gold: styles.tierGold,
-  Diamond: styles.tierDiamond,
-};
-
 export default async function AdminCustomers() {
   const customers = await getCustomers();
 
@@ -29,7 +22,6 @@ export default async function AdminCustomers() {
               <th>Role</th>
               <th>Total Orders</th>
               <th>Lifetime Spent</th>
-              <th>Loyalty Tier</th>
             </tr>
           </thead>
           <tbody>
@@ -42,18 +34,11 @@ export default async function AdminCustomers() {
                 <td style={{ textTransform: 'capitalize' }}>{cust.role}</td>
                 <td>{cust.orders}</td>
                 <td>${cust.spent.toFixed(2)}</td>
-                <td>
-                  <span
-                    className={`${styles.statusBadge} ${TIER_BADGE[cust.tier] ?? ''}`}
-                  >
-                    {cust.tier}
-                  </span>
-                </td>
               </tr>
             ))}
             {customers.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                   No customers yet.
                 </td>
               </tr>

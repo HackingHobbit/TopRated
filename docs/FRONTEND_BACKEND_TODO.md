@@ -38,7 +38,8 @@ This document serves as the master checklist and source of truth for the project
 
 **Frontend Tasks:**
 - [ ] Build Login/Register UI flows.
-- [ ] Build User Profile page showing accumulated `loyalty_points`.
+- [ ] Implement loyalty program: define earning rules, tier benefits, and redemption behavior.
+- [ ] Restore customer-facing loyalty points and tier UI once the program is implemented.
 - [ ] Build exclusive "Loyalty Store" that is conditionally locked to authenticated users.
 
 ## Phase 5: Clover Integration (⏳ Pending)

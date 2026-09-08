@@ -91,7 +91,6 @@ export default function UsersClient({
             <tr>
               <th>Name / Email</th>
               <th>Role</th>
-              <th>Loyalty</th>
               <th>Joined</th>
               <th>Actions</th>
             </tr>
@@ -123,7 +122,6 @@ export default function UsersClient({
                       <option value="admin">admin</option>
                     </select>
                   </td>
-                  <td>{u.loyaltyPoints}</td>
                   <td className={styles.joined}>
                     {u.createdAt ? u.createdAt.slice(0, 10) : '—'}
                   </td>
@@ -169,7 +167,7 @@ export default function UsersClient({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className={styles.empty}>
+                <td colSpan={4} className={styles.empty}>
                   No users match “{query}”.
                 </td>
               </tr>
@@ -182,9 +180,9 @@ export default function UsersClient({
         <EditProfileModal
           user={editing}
           onClose={() => setEditing(null)}
-          onSave={(name, loyaltyPoints) => {
+          onSave={(name) => {
             run(
-              () => updateUserProfile(editing.id, { name, loyaltyPoints }),
+              () => updateUserProfile(editing.id, { name }),
               'Profile updated.'
             );
             setEditing(null);
@@ -212,23 +210,14 @@ function EditProfileModal({
 }: {
   user: AdminUser;
   onClose: () => void;
-  onSave: (name: string, loyaltyPoints: number) => void;
+  onSave: (name: string) => void;
 }) {
   const [name, setName] = useState(user.name);
-  const [points, setPoints] = useState(String(user.loyaltyPoints));
   return (
     <Modal title={`Edit ${user.email}`} onClose={onClose}>
       <label className={styles.field}>
         <span>Name</span>
         <input value={name} onChange={(e) => setName(e.target.value)} />
-      </label>
-      <label className={styles.field}>
-        <span>Loyalty points</span>
-        <input
-          type="number"
-          value={points}
-          onChange={(e) => setPoints(e.target.value)}
-        />
       </label>
       <div className={styles.modalActions}>
         <button className="btn-secondary" onClick={onClose}>
@@ -236,7 +225,7 @@ function EditProfileModal({
         </button>
         <button
           className="btn-primary"
-          onClick={() => onSave(name, Number(points) || 0)}
+          onClick={() => onSave(name)}
         >
           Save
         </button>
