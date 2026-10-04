@@ -51,6 +51,9 @@ export interface CloverChargeInput {
   source?: string;
   /** Client IP — Clover requires x-forwarded-for on live charges. */
   clientIp?: string;
+  /** Sent as Clover's idempotency-key header: retrying with the same key
+   *  returns the original charge instead of charging again. */
+  idempotencyKey?: string;
 }
 
 export interface CloverChargeResult {
@@ -61,6 +64,10 @@ export interface CloverChargeResult {
   error?: string;
   /** true when produced by the phantom (mock) client. */
   simulated?: boolean;
+  /** Failed without a definitive answer (network error, timeout, 5xx) — the
+   *  card may or may not have been charged. Safe to retry with the same
+   *  idempotency key; never treat as a decline. */
+  uncertain?: boolean;
 }
 
 // Admin Integrations UI shapes (kept here, not in the 'use server' actions
@@ -116,6 +123,7 @@ export interface CloverStoredChargeInput {
   customerId: string;
   sourceId: string;
   clientIp?: string;
+  idempotencyKey?: string;
 }
 
 export interface CloverClient {

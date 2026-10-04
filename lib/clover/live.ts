@@ -94,6 +94,7 @@ export class LiveCloverClient implements CloverClient {
           // Clover requires these on charge requests.
           'User-Agent': 'TopRatedCC/1.0',
           'x-forwarded-for': input.clientIp || '0.0.0.0',
+          ...(input.idempotencyKey ? { 'idempotency-key': input.idempotencyKey } : {}),
         },
         body: JSON.stringify({
           amount: input.amountCents,
@@ -107,11 +108,15 @@ export class LiveCloverClient implements CloverClient {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        return { ok: false, error: data?.error?.message || `Clover charge failed (${res.status}).` };
+        return {
+          ok: false,
+          error: data?.error?.message || `Clover charge failed (${res.status}).`,
+          uncertain: res.status >= 500,
+        };
       }
       return { ok: true, chargeId: data.id, status: data.status, amountCents: data.amount };
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : 'charge error' };
+      return { ok: false, error: e instanceof Error ? e.message : 'charge error', uncertain: true };
     }
   }
 
@@ -226,6 +231,7 @@ export class LiveCloverClient implements CloverClient {
           'Content-Type': 'application/json',
           'User-Agent': 'TopRatedCC/1.0',
           'x-forwarded-for': input.clientIp || '0.0.0.0',
+          ...(input.idempotencyKey ? { 'idempotency-key': input.idempotencyKey } : {}),
         },
         body: JSON.stringify({
           amount: input.amountCents,
@@ -244,11 +250,15 @@ export class LiveCloverClient implements CloverClient {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        return { ok: false, error: data?.error?.message || `Clover charge failed (${res.status}).` };
+        return {
+          ok: false,
+          error: data?.error?.message || `Clover charge failed (${res.status}).`,
+          uncertain: res.status >= 500,
+        };
       }
       return { ok: true, chargeId: data.id, status: data.status, amountCents: data.amount };
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : 'charge error' };
+      return { ok: false, error: e instanceof Error ? e.message : 'charge error', uncertain: true };
     }
   }
 

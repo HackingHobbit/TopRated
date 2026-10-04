@@ -76,6 +76,8 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  // One id per visit to checkout, so a double-submit can't charge twice.
+  const [checkoutKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
   // The real order number comes back from the server (a persisted order),
   // not a client-side Math.random().
@@ -234,6 +236,7 @@ export default function CheckoutPage() {
     const res = await placeOrder(items, shipping, cardToken, {
       vaultCardToken,
       savedPaymentMethodId: usingSavedCard ? selectedPaymentId : undefined,
+      idempotencyKey: checkoutKey,
     });
     setIsProcessing(false);
     if (!res.ok) {
