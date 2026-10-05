@@ -6,6 +6,7 @@ import { Product } from '@/lib/types';
 import { useCart } from '@/contexts/CartContext';
 import { useWantList } from '@/contexts/WantListContext';
 import { Heart, Info } from 'lucide-react';
+import { isPlaceholderImage } from '@/lib/site';
 import styles from './ProductCard.module.css';
 
 interface ProductCardProps {
@@ -74,7 +75,12 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.isLimited && <span className={`${styles.badge} ${styles.limitedBadge}`}>Limited</span>}
           </div>
 
-          {product.imageRepresentative && (
+          {isPlaceholderImage(product.image) ? (
+            <span className={styles.repChip} title="We don't have a photo of this item yet.">
+              <Info size={12} aria-hidden />
+              Photo coming soon
+            </span>
+          ) : product.imageRepresentative && (
             <span
               className={styles.repChip}
               title="The image shown is representative — the exact item may vary in appearance."

@@ -13,11 +13,11 @@ import 'server-only';
 // are never touched — those are curated on the website.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { PLACEHOLDER_IMAGE } from '../site';
 
 const CLOVER_API = 'https://api.clover.com';
 const PAGE_SIZE = 1000;
 
-export const PLACEHOLDER_IMAGE = '/assets/product-placeholder.png';
 
 interface CloverApiItem {
   id: string;

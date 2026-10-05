@@ -3,7 +3,7 @@ import { Info } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getProductById } from '@/lib/db';
-import { absoluteUrl } from '@/lib/site';
+import { absoluteUrl, isPlaceholderImage } from '@/lib/site';
 import ProductDetailClient from './ProductDetailClient';
 import styles from './page.module.css';
 
@@ -134,7 +134,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {product.imageRepresentative && (
+        {isPlaceholderImage(product.image) ? (
+          <p className={styles.imageNote}>
+            <Info size={15} aria-hidden />
+            <span>
+              <strong>Photo coming soon.</strong> We don&apos;t have a photo of this
+              item yet. Questions about it? Use the Contact page.
+            </span>
+          </p>
+        ) : product.imageRepresentative && (
           <p className={styles.imageNote}>
             <Info size={15} aria-hidden />
             <span>
