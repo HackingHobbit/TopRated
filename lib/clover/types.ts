@@ -193,4 +193,9 @@ export interface CloverClient {
    * Callers must never retry it.
    */
   payOrder(input: CloverPayOrderInput): Promise<CloverChargeResult>;
+  /**
+   * Remove an order that was never paid (declined card, or not used), so it
+   * doesn't linger as an open order in Clover. Refuses if any payment exists.
+   */
+  deleteUnpaidOrder(orderId: string): Promise<{ ok: boolean; error?: string }>;
 }

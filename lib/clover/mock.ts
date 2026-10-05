@@ -106,4 +106,8 @@ export class MockCloverClient implements CloverClient {
       simulated: true,
     };
   }
+
+  async deleteUnpaidOrder(): Promise<{ ok: boolean; error?: string }> {
+    return { ok: true };
+  }
 }

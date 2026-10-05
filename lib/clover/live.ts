@@ -434,4 +434,23 @@ export class LiveCloverClient implements CloverClient {
     }
     return result;
   }
+
+  // The ecommerce API has no delete (405), but the Platform API does — and
+  // removes the order entirely (verified on sandbox).
+  async deleteUnpaidOrder(orderId: string): Promise<{ ok: boolean; error?: string }> {
+    if (!this.s.merchantId || !this.s.apiToken) return { ok: false, error: 'Missing merchant ID or API token.' };
+    const url = `${platformBase(this.s.environment)}/v3/merchants/${encodeURIComponent(this.s.merchantId)}/orders/${encodeURIComponent(orderId)}`;
+    try {
+      const res = await fetch(`${url}?expand=payments`, { headers: this.platformHeaders(), signal: AbortSignal.timeout(10_000), cache: 'no-store' });
+      if (res.status === 404) return { ok: true };
+      if (!res.ok) return { ok: false, error: `Clover returned ${res.status}` };
+      const order = await res.json();
+      const hasPayment = (order.payments?.elements ?? []).length > 0 || order.paymentState === 'PAID';
+      if (hasPayment) return { ok: false, error: 'Order has a payment — not deleted.' };
+      const del = await fetch(url, { method: 'DELETE', headers: this.platformHeaders(), signal: AbortSignal.timeout(10_000) });
+      return del.ok ? { ok: true } : { ok: false, error: `Clover delete returned ${del.status}` };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'delete error' };
+    }
+  }
 }

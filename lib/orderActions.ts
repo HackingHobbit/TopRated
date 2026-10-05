@@ -278,6 +278,8 @@ export async function placeOrder(
         });
         cloverRef = cOrder.orderId;
       } else {
+        // Created but not used (total didn't match) — don't leave it open in Clover.
+        if (cOrder.ok && cOrder.orderId) await clover.deleteUnpaidOrder(cOrder.orderId);
         console.warn(
           `[checkout] ${number}: itemized Clover order not used (${cOrder.error ?? `total ${cOrder.amountCents} ≠ ${amountCents}`}); charging total instead`
         );
@@ -304,10 +306,23 @@ export async function placeOrder(
         console.error(`[checkout] payment unconfirmed for ${number}: ${result.error}`);
         return { ok: false, error: PAYMENT_UNCONFIRMED_MESSAGE };
       }
-      // Definitive decline: release the stock and remove the pending order.
+      // Definitive decline: remove the unpaid Clover order (if one was made),
+      // release the stock and remove the pending order.
+      if (cloverRef && !result.chargeId) {
+        const { error: cErr } = await clover.deleteUnpaidOrder(cloverRef);
+        if (cErr) console.error(`[checkout] ${number}: could not remove unpaid Clover order ${cloverRef}: ${cErr}`);
+      }
       const { error: dErr } = await supabase.rpc('discard_pending_order', { p_order_id: orderId });
       if (dErr) console.error(`[checkout] could not discard declined order ${number}: ${dErr.message}`);
-      return { ok: false, error: result.error || 'Payment could not be processed.' };
+      // Clover's raw decline text ("DECLINED: No reason provided.") isn't
+      // meant for shoppers.
+      const declined = /declin/i.test(result.error ?? '');
+      return {
+        ok: false,
+        error: declined
+          ? 'Your card was declined. Please check the details or try a different card.'
+          : result.error || 'Payment could not be processed.',
+      };
     }
 
     // 3. Paid — move the order into fulfillment. If this write fails the
