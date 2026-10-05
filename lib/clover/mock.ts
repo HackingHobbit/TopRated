@@ -10,6 +10,9 @@ import type {
   CloverSaveCardInput,
   CloverSaveCardResult,
   CloverStoredChargeInput,
+  CloverCreateOrderInput,
+  CloverOrderResult,
+  CloverPayOrderInput,
 } from './types';
 
 // Phantom Clover. Behaves like a connected merchant so the whole app flow
@@ -18,6 +21,7 @@ import type {
 // in the admin Integrations page (see lib/clover/live.ts).
 export class MockCloverClient implements CloverClient {
   readonly mode = 'mock' as const;
+  readonly environment = 'sandbox' as const;
 
   async testConnection(): Promise<CloverConnResult> {
     return {
@@ -75,5 +79,31 @@ export class MockCloverClient implements CloverClient {
 
   async deleteStoredCard(): Promise<{ ok: boolean; error?: string }> {
     return { ok: true };
+  }
+
+  async getSalesTaxRateId(): Promise<string | null> {
+    return 'mock_tax_rate';
+  }
+
+  // Simulated itemized order: mirrors the website's own math (tax on the
+  // item subtotal, 9.25%) so the amount check in placeOrder passes.
+  async createOrder(input: CloverCreateOrderInput): Promise<CloverOrderResult> {
+    const items = input.lines.reduce((sum, l) => sum + l.unitCents * l.quantity, 0);
+    const tax = Math.round(items * 0.0925);
+    return {
+      ok: true,
+      orderId: `mock_ord_${randomUUID().replace(/-/g, '').slice(0, 12)}`,
+      amountCents: items + tax + input.shippingCents,
+    };
+  }
+
+  async payOrder(input: CloverPayOrderInput): Promise<CloverChargeResult> {
+    void input;
+    return {
+      ok: true,
+      chargeId: `mock_ch_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+      status: 'succeeded',
+      simulated: true,
+    };
   }
 }

@@ -13,6 +13,7 @@ import { getSupabaseAdmin } from './supabase/admin';
 import { getCurrentUser, getSupabaseServer } from './supabase/server';
 import type { MyOrder } from './types';
 import { getCloverClient } from './clover';
+import { adjustCloverStock } from './clover/inventoryStock';
 import { assertAdmin } from './auth-guard';
 import { PER_ITEM_LIMIT, FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, TAX_RATE, round2 } from './pricing';
 import { ORDER_STATUSES, type OrderStatus } from './orderStatus';
@@ -28,6 +29,8 @@ export interface ShippingDetails {
   city: string;
   state: string;
   zip: string;
+  /** Guests type this at checkout; signed-in customers use their account email. */
+  email?: string;
 }
 
 export interface PlaceOrderResult {
@@ -161,6 +164,13 @@ export async function placeOrder(
 
     const user = await getCurrentUser();
 
+    // Contact email: the account's for signed-in customers, typed in by guests.
+    const email = (user?.email || shipping.email || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { ok: false, error: 'Please enter a valid email address so we can send your order details.' };
+    }
+    shipping = { ...shipping, email };
+
     // Mock orders get a DEMO- number so they can be bulk-cleaned from the
     // admin dashboard (real orders use TR-).
     const clover = await getCloverClient();
@@ -222,15 +232,70 @@ export async function placeOrder(
       return { ok: false, error: oErr?.message || 'Could not create your order.' };
     }
 
-    // 2. Charge. The order id doubles as Clover's idempotency key, so the one
-    //    retry below can never double-charge; a declined card gets a fresh
-    //    order (and key) on the customer's next attempt.
-    const charge = async () =>
-      storedCard
-        ? clover.chargeStoredCard({ amountCents, orderNumber: number, clientIp, idempotencyKey: orderId, ...storedCard })
-        : clover.createCharge({ amountCents, orderNumber: number, source: cardToken, clientIp, idempotencyKey: orderId });
-    let result = await charge();
-    if (!result.ok && result.uncertain) result = await charge();
+    // 2. Charge. Preferred: an itemized Clover order (each product, shipping
+    //    and the store's own sales tax show in Clover) that is then paid.
+    //    Used only when Clover's computed total matches ours to the cent;
+    //    otherwise — or if Clover won't create the order — fall back to a
+    //    single charge for the total, so the customer is always charged
+    //    exactly what checkout showed.
+    let cloverRef: string | undefined;
+    let result: Awaited<ReturnType<typeof clover.createCharge>> | null = null;
+
+    const taxRateId = await clover.getSalesTaxRateId();
+    if (taxRateId) {
+      const nameParts = shipping.fullName.trim().split(/\s+/);
+      const cOrder = await clover.createOrder({
+        orderNumber: number,
+        email,
+        lines: lineItems.map((l) => ({
+          description: l.product_name,
+          unitCents: Math.round(l.unit_price * 100),
+          quantity: l.quantity,
+          inventoryId: l.product_id,
+        })),
+        shippingCents: Math.round(shippingCost * 100),
+        taxRateId,
+        // Clover rejects shipping names that aren't "First Last".
+        shipTo:
+          nameParts.length >= 2
+            ? {
+                name: nameParts.join(' '),
+                line1: shipping.address,
+                city: shipping.city,
+                state: shipping.state,
+                postalCode: shipping.zip,
+              }
+            : undefined,
+      });
+      if (cOrder.ok && cOrder.orderId && cOrder.amountCents === amountCents) {
+        // Pay is not idempotent on Clover's side, so it is never retried here;
+        // payOrder itself checks the order's status on an unclear result.
+        result = await clover.payOrder({
+          orderId: cOrder.orderId,
+          email,
+          clientIp,
+          ...(storedCard ? { storedCustomerId: storedCard.customerId } : { source: cardToken }),
+        });
+        cloverRef = cOrder.orderId;
+      } else {
+        console.warn(
+          `[checkout] ${number}: itemized Clover order not used (${cOrder.error ?? `total ${cOrder.amountCents} ≠ ${amountCents}`}); charging total instead`
+        );
+      }
+    }
+
+    if (!result) {
+      // Single charge for the total. The website order id doubles as Clover's
+      // idempotency key (honored on /v1/charges — verified on sandbox), so
+      // the one retry below can never double-charge.
+      const charge = async () =>
+        storedCard
+          ? clover.chargeStoredCard({ amountCents, orderNumber: number, clientIp, idempotencyKey: orderId, ...storedCard })
+          : clover.createCharge({ amountCents, orderNumber: number, source: cardToken, clientIp, idempotencyKey: orderId });
+      result = await charge();
+      if (!result.ok && result.uncertain) result = await charge();
+      cloverRef = result.chargeId;
+    }
 
     if (!result.ok) {
       if (result.uncertain) {
@@ -250,10 +315,24 @@ export async function placeOrder(
     //    so report success and leave it for staff to advance.
     const { error: uErr } = await supabase
       .from('orders')
-      .update({ status: 'processing', clover_order_id: result.chargeId ?? null })
+      .update({ status: 'processing', clover_order_id: cloverRef ?? null, shipping_address: shipping })
       .eq('id', orderId);
     if (uErr) {
       console.error(`[checkout] ${number} paid (charge ${result.chargeId}) but status update failed: ${uErr.message}`);
+    }
+
+    // Real sale on the real Clover account: lower Clover's own stock counts,
+    // which Clover doesn't do for online orders. Best effort — the next
+    // inventory sync would otherwise put sold items back in stock.
+    if (clover.mode === 'live' && clover.environment === 'production') {
+      const { errors } = await adjustCloverStock(
+        supabase,
+        lineItems.map((l) => ({ productId: l.product_id, delta: -l.quantity })),
+        'clover_sale',
+        number,
+        user?.id ?? null
+      );
+      if (errors.length) console.error(`[checkout] ${number}: Clover stock not fully updated: ${errors.join('; ')}`);
     }
 
     // Vaulting a NEW card only applies when we didn't just pay with an
@@ -391,6 +470,25 @@ export async function updateOrderStatus(
         p_created_by: user?.id ?? null,
       });
       if (sErr) return { ok: false, error: sErr.message };
+    }
+
+    // Put back whatever this order took from the real Clover stock count
+    // (only orders paid on the real account have 'clover_sale' rows).
+    const { data: cloverSales } = await admin
+      .from('inventory_transactions')
+      .select('product_id, delta')
+      .eq('reference_id', order.order_number)
+      .eq('reason', 'clover_sale');
+    const taken = new Map<string, number>();
+    for (const row of (cloverSales ?? []) as { product_id: string; delta: number }[]) {
+      taken.set(row.product_id, (taken.get(row.product_id) ?? 0) + row.delta);
+    }
+    const changes = [...taken].filter(([, d]) => d < 0).map(([productId, d]) => ({ productId, delta: -d }));
+    if (changes.length > 0) {
+      const { errors } = await adjustCloverStock(admin, changes, 'clover_restock', order.order_number, user?.id ?? null);
+      if (errors.length) {
+        console.error(`[orders] ${order.order_number}: Clover stock not fully restored: ${errors.join('; ')}`);
+      }
     }
   }
 

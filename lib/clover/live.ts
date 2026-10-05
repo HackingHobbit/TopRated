@@ -10,7 +10,13 @@ import type {
   CloverSaveCardInput,
   CloverSaveCardResult,
   CloverStoredChargeInput,
+  CloverCreateOrderInput,
+  CloverOrderResult,
+  CloverPayOrderInput,
 } from './types';
+
+// Tax rate ids rarely change; cache per server instance for 10 minutes.
+let taxRateCache: { key: string; id: string | null; at: number } | null = null;
 
 // Real Clover API client. Endpoints/hosts per Clover's developer docs:
 //   Platform API:   https://api.clover.com            (production)
@@ -30,7 +36,19 @@ function ecommBase(env: CloverSettings['environment']): string {
 
 export class LiveCloverClient implements CloverClient {
   readonly mode = 'live' as const;
-  constructor(private readonly s: CloverSettings) {}
+  readonly environment: CloverSettings['environment'];
+  constructor(private readonly s: CloverSettings) {
+    this.environment = s.environment;
+  }
+
+  private ecommHeaders(clientIp?: string) {
+    return {
+      Authorization: `Bearer ${this.s.ecommPrivateKey}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'TopRatedCC/1.0',
+      'x-forwarded-for': clientIp || '0.0.0.0',
+    };
+  }
 
   private platformHeaders() {
     return { Authorization: `Bearer ${this.s.apiToken}`, Accept: 'application/json' };
@@ -281,5 +299,139 @@ export class LiveCloverClient implements CloverClient {
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : 'delete-card error' };
     }
+  }
+
+  async getSalesTaxRateId(): Promise<string | null> {
+    if (!this.s.merchantId || !this.s.apiToken) return null;
+    const key = `${this.s.environment}:${this.s.merchantId}`;
+    if (taxRateCache && taxRateCache.key === key && Date.now() - taxRateCache.at < 10 * 60_000) {
+      return taxRateCache.id;
+    }
+    try {
+      const url = `${platformBase(this.s.environment)}/v3/merchants/${encodeURIComponent(this.s.merchantId)}/tax_rates`;
+      const res = await fetch(url, { headers: this.platformHeaders(), signal: AbortSignal.timeout(10_000), cache: 'no-store' });
+      if (!res.ok) return null;
+      const rates = ((await res.json()).elements ?? []) as { id: string; rate?: number; isDefault?: boolean }[];
+      const taxing = rates.filter((t) => (t.rate ?? 0) > 0);
+      const id = (taxing.find((t) => t.isDefault) ?? taxing[0])?.id ?? null;
+      taxRateCache = { key, id, at: Date.now() };
+      return id;
+    } catch {
+      return null;
+    }
+  }
+
+  // Ecommerce order with one line per product, plus shipping; Clover adds the
+  // tax line itself from the merchant's tax rate. Lines are linked to Clover
+  // inventory items only in production — the test account has none of the
+  // store's items, and an unknown item makes Clover reject the whole order.
+  async createOrder(input: CloverCreateOrderInput): Promise<CloverOrderResult> {
+    if (!this.s.ecommPrivateKey) return { ok: false, error: 'No Ecommerce private key configured.' };
+    const build = (linkInventory: boolean) => ({
+      currency: 'usd',
+      email: input.email,
+      items: [
+        ...input.lines.map((l) => ({
+          type: 'sku',
+          quantity: l.quantity,
+          amount: l.unitCents,
+          currency: 'usd',
+          description: l.description.slice(0, 127),
+          ...(linkInventory && l.inventoryId ? { parent: l.inventoryId } : {}),
+          tax_rates: [{ name: 'Sales Tax', tax_rate_uuid: input.taxRateId }],
+        })),
+        ...(input.shippingCents > 0
+          ? [{ type: 'shipping', quantity: 1, amount: input.shippingCents, currency: 'usd', description: 'Shipping' }]
+          : []),
+      ],
+      ...(input.shipTo
+        ? {
+            shipping: {
+              name: input.shipTo.name,
+              address: {
+                line1: input.shipTo.line1,
+                city: input.shipTo.city,
+                state: input.shipTo.state,
+                postal_code: input.shipTo.postalCode,
+                country: 'US',
+              },
+            },
+          }
+        : {}),
+    });
+    const attempt = async (linkInventory: boolean): Promise<CloverOrderResult> => {
+      try {
+        const res = await fetch(`${ecommBase(this.s.environment)}/v1/orders`, {
+          method: 'POST',
+          headers: this.ecommHeaders(),
+          body: JSON.stringify(build(linkInventory)),
+          signal: AbortSignal.timeout(20_000),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return { ok: false, error: data?.error?.message || `Clover order failed (${res.status}).` };
+        return { ok: true, orderId: data.id, amountCents: data.amount };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'order error' };
+      }
+    };
+    const linked = this.s.environment === 'production' && input.lines.some((l) => l.inventoryId);
+    const first = await attempt(linked);
+    // A product that isn't (or is no longer) in Clover's inventory makes the
+    // linked version fail; the unlinked order still itemizes correctly.
+    return first.ok || !linked ? first : attempt(false);
+  }
+
+  async payOrder(input: CloverPayOrderInput): Promise<CloverChargeResult> {
+    if (!this.s.ecommPrivateKey) return { ok: false, error: 'No Ecommerce private key configured.' };
+    const base = ecommBase(this.s.environment);
+    const body = input.storedCustomerId
+      ? {
+          ecomind: 'ecom',
+          email: input.email,
+          customer: input.storedCustomerId,
+          stored_credentials: { sequence: 'SUBSEQUENT', is_scheduled: false, initiator: 'CARDHOLDER' },
+        }
+      : { ecomind: 'ecom', email: input.email, source: input.source };
+
+    let result: CloverChargeResult;
+    try {
+      const res = await fetch(`${base}/v1/orders/${encodeURIComponent(input.orderId)}/pay`, {
+        method: 'POST',
+        headers: this.ecommHeaders(input.clientIp),
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(25_000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) return { ok: true, chargeId: data.charge, status: data.status, amountCents: data.amount };
+      result = {
+        ok: false,
+        error: data?.error?.message || `Clover payment failed (${res.status}).`,
+        uncertain: res.status >= 500,
+      };
+    } catch (e) {
+      result = { ok: false, error: e instanceof Error ? e.message : 'payment error', uncertain: true };
+    }
+    if (!result.uncertain) return result;
+
+    // Unclear outcome: the payment may still have gone through. Give Clover a
+    // moment, then ask it directly. If it still isn't marked paid we stay
+    // "uncertain" (never "declined"): a slow payment could yet land, and
+    // pay isn't idempotent, so the caller must not retry it.
+    await new Promise((r) => setTimeout(r, 3000));
+    try {
+      const res = await fetch(`${base}/v1/orders/${encodeURIComponent(input.orderId)}`, {
+        headers: this.ecommHeaders(input.clientIp),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const order = await res.json().catch(() => ({}));
+      // Clover's GET order has no status field in practice — a paid order is
+      // recognised by its charge (verified on sandbox).
+      if (res.ok && (order.status === 'paid' || order.charge)) {
+        return { ok: true, chargeId: order.charge, status: 'paid', amountCents: order.amount };
+      }
+    } catch {
+      /* still unknown — report uncertain */
+    }
+    return result;
   }
 }

@@ -126,8 +126,50 @@ export interface CloverStoredChargeInput {
   idempotencyKey?: string;
 }
 
+// ---- Itemized ecommerce orders (Clover shows each product, shipping and tax)
+
+export interface CloverOrderLine {
+  description: string;
+  unitCents: number;
+  quantity: number;
+  /** The Clover inventory item this line sold (only linked in production). */
+  inventoryId?: string;
+}
+
+export interface CloverCreateOrderInput {
+  orderNumber: string;
+  /** Clover requires an email on every ecommerce order. */
+  email: string;
+  lines: CloverOrderLine[];
+  shippingCents: number;
+  /** The merchant's own sales-tax rate (see getSalesTaxRateId). */
+  taxRateId: string;
+  /** Omitted when the name isn't "First Last" — Clover rejects those. */
+  shipTo?: { name: string; line1: string; city: string; state: string; postalCode: string };
+}
+
+export interface CloverOrderResult {
+  ok: boolean;
+  orderId?: string;
+  /** Clover's computed total (items + shipping + tax), in cents. */
+  amountCents?: number;
+  error?: string;
+}
+
+export interface CloverPayOrderInput {
+  orderId: string;
+  email: string;
+  /** One-time card token from the hosted fields... */
+  source?: string;
+  /** ...or the Clover customer id of a saved card. */
+  storedCustomerId?: string;
+  clientIp?: string;
+}
+
 export interface CloverClient {
   readonly mode: CloverMode;
+  /** Which Clover account payments go to ('sandbox' = the test account). */
+  readonly environment: CloverEnv;
   /** Lightweight credential/connectivity check for the admin "Test" button. */
   testConnection(): Promise<CloverConnResult>;
   /** Pull merchant inventory (used by a future "Sync from Clover" action). */
@@ -140,4 +182,15 @@ export interface CloverClient {
   chargeStoredCard(input: CloverStoredChargeInput): Promise<CloverChargeResult>;
   /** Remove a vaulted card. */
   deleteStoredCard(customerId: string, sourceId: string): Promise<{ ok: boolean; error?: string }>;
+  /** The merchant's default sales-tax rate id, or null if none is set up. */
+  getSalesTaxRateId(): Promise<string | null>;
+  /** Create an itemized order (not yet paid). */
+  createOrder(input: CloverCreateOrderInput): Promise<CloverOrderResult>;
+  /**
+   * Pay an order. NOTE: Clover's pay endpoint does NOT honor idempotency keys
+   * (verified on sandbox: two calls = two charges), so on an unclear result
+   * this re-reads the order and only reports `uncertain` if it's still unpaid.
+   * Callers must never retry it.
+   */
+  payOrder(input: CloverPayOrderInput): Promise<CloverChargeResult>;
 }

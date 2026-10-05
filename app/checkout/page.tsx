@@ -198,6 +198,8 @@ export default function CheckoutPage() {
       city: String(data.get('city') ?? ''),
       state: String(data.get('state') ?? ''),
       zip: String(data.get('zip') ?? ''),
+      // Guests only — signed-in customers' account email is used server-side.
+      ...(isAuthenticated ? {} : { email: String(data.get('email') ?? '').trim() }),
     };
 
     const items = cart.map((i) => ({
@@ -336,6 +338,20 @@ export default function CheckoutPage() {
 
                 {/* Re-keying on the selection remounts these inputs with fresh
                     defaultValue — simplest way to "autofill" an uncontrolled form. */}
+                {!isAuthenticated && (
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="email">Email</label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="For your receipt and order updates"
+                      required
+                    />
+                  </div>
+                )}
+
                 <div key={selectedAddressId}>
                   <div className={styles.inputGroup}>
                     <label htmlFor="fullName">Full Name</label>
