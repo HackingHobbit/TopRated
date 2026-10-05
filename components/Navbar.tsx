@@ -4,10 +4,53 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShoppingCart, CircleUserRound, LogIn, Search, Menu, X, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, CircleUserRound, LogIn, Search, Menu, X, LayoutDashboard, ChevronDown } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './Navbar.module.css';
+
+// Shop menu shared by the desktop dropdown and the mobile menu, so the two
+// can never drift apart.
+const SHOP_MENU: { title: string; links: { label: string; href: string }[] }[] = [
+  {
+    title: 'Sports',
+    links: [
+      { label: 'NFL', href: '/shop?subCategory=NFL' },
+      { label: 'MLB', href: '/shop?subCategory=MLB' },
+      { label: 'NBA', href: '/shop?subCategory=NBA' },
+      { label: 'NHL', href: '/shop?subCategory=NHL' },
+      { label: 'Soccer', href: '/shop?subCategory=Soccer' },
+      { label: 'Combat (UFC / Boxing / WWE)', href: '/shop?subCategory=Combat' },
+      { label: 'Racing (NASCAR / F1)', href: '/shop?subCategory=Racing' },
+      { label: 'Golf', href: '/shop?subCategory=Golf' },
+    ],
+  },
+  {
+    title: 'Trading Card Games',
+    links: [
+      { label: 'All TCG', href: '/shop?subCategory=TCG' },
+      { label: 'Pokémon', href: '/shop?subCategory=TCG&search=Pokemon' },
+      { label: 'Magic: The Gathering', href: '/shop?subCategory=TCG&search=Magic' },
+      { label: 'One Piece', href: '/shop?subCategory=TCG&search=One+Piece' },
+      { label: 'Marvel', href: '/shop?subCategory=TCG&search=Marvel' },
+      { label: 'Disney Lorcana', href: '/shop?subCategory=TCG&search=Disney' },
+      { label: 'My Little Pony', href: '/shop?subCategory=TCG&search=My+Little+Pony' },
+    ],
+  },
+  {
+    title: 'Browse',
+    links: [
+      { label: 'All Products', href: '/shop' },
+      { label: 'Sealed Boxes', href: '/shop?type=sealed' },
+      { label: 'Singles', href: '/shop?type=single' },
+      { label: 'Deals', href: '/shop?sale=1' },
+      { label: 'Accessories & Supplies', href: '/shop?subCategory=Accessories' },
+      { label: 'Signed Memorabilia', href: '/shop?subCategory=Signed Jersey' },
+      { label: 'Entertainment', href: '/shop?subCategory=Entertainment' },
+      { label: 'Beverages', href: '/shop?subCategory=Beverages' },
+    ],
+  },
+];
 
 export default function Navbar() {
   const { totalItems, toggleCart } = useCart();
@@ -22,6 +65,8 @@ export default function Navbar() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Which shop section is expanded in the mobile menu (one at a time).
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
   // Close mobile menu when the path changes. usePathname is a string that
   // updates on every navigation, so React picks up the change and re-runs
@@ -90,38 +135,14 @@ export default function Navbar() {
             
             <div className={styles.dropdownMenu}>
               <div className={styles.dropdownGrid}>
-                <div className={styles.dropdownColumn}>
-                  <h4>Sports</h4>
-                  <Link href="/shop?subCategory=NFL">NFL</Link>
-                  <Link href="/shop?subCategory=MLB">MLB</Link>
-                  <Link href="/shop?subCategory=NBA">NBA</Link>
-                  <Link href="/shop?subCategory=NHL">NHL</Link>
-                  <Link href="/shop?subCategory=Soccer">Soccer</Link>
-                  <Link href="/shop?subCategory=Combat">Combat (UFC / Boxing / WWE)</Link>
-                  <Link href="/shop?subCategory=Racing">Racing (NASCAR / F1)</Link>
-                  <Link href="/shop?subCategory=Golf">Golf</Link>
-                </div>
-                <div className={styles.dropdownColumn}>
-                  <h4>Trading Card Games</h4>
-                  <Link href="/shop?subCategory=TCG">All TCG</Link>
-                  <Link href="/shop?subCategory=TCG&amp;search=Pokemon">Pokémon</Link>
-                  <Link href="/shop?subCategory=TCG&amp;search=Magic">Magic: The Gathering</Link>
-                  <Link href="/shop?subCategory=TCG&amp;search=One+Piece">One Piece</Link>
-                  <Link href="/shop?subCategory=TCG&amp;search=Marvel">Marvel</Link>
-                  <Link href="/shop?subCategory=TCG&amp;search=Disney">Disney Lorcana</Link>
-                  <Link href="/shop?subCategory=TCG&amp;search=My+Little+Pony">My Little Pony</Link>
-                </div>
-                <div className={styles.dropdownColumn}>
-                  <h4>Browse</h4>
-                  <Link href="/shop">All Products</Link>
-                  <Link href="/shop?type=sealed">Sealed Boxes</Link>
-                  <Link href="/shop?type=single">Singles</Link>
-                  <Link href="/shop?sale=1">Deals</Link>
-                  <Link href="/shop?subCategory=Accessories">Accessories &amp; Supplies</Link>
-                  <Link href="/shop?subCategory=Signed Jersey">Signed Memorabilia</Link>
-                  <Link href="/shop?subCategory=Entertainment">Entertainment</Link>
-                  <Link href="/shop?subCategory=Beverages">Beverages</Link>
-                </div>
+                {SHOP_MENU.map((section) => (
+                  <div key={section.title} className={styles.dropdownColumn}>
+                    <h4>{section.title}</h4>
+                    {section.links.map((l) => (
+                      <Link key={l.href} href={l.href}>{l.label}</Link>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -202,9 +223,37 @@ export default function Navbar() {
         <nav className={styles.mobileNavLinks}>
           <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
           <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)}>Shop All</Link>
-          <Link href="/shop?type=sealed" onClick={() => setIsMobileMenuOpen(false)}>Sealed Boxes</Link>
-          <Link href="/shop?type=single" onClick={() => setIsMobileMenuOpen(false)}>Singles</Link>
-          <Link href="/shop?sale=1" onClick={() => setIsMobileMenuOpen(false)}>Deals</Link>
+
+          <div className={styles.mobileShopSections}>
+            {SHOP_MENU.map((section) => {
+              const isOpen = openSection === section.title;
+              const panelId = `mobile-shop-${section.title.toLowerCase().replace(/\W+/g, '-')}`;
+              return (
+                <div key={section.title} className={styles.mobileSection}>
+                  <button
+                    type="button"
+                    className={styles.mobileSectionToggle}
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    onClick={() => setOpenSection(isOpen ? null : section.title)}
+                  >
+                    {section.title}
+                    <ChevronDown size={20} className={isOpen ? styles.chevronOpen : styles.chevron} aria-hidden />
+                  </button>
+                  {isOpen && (
+                    <div id={panelId} className={styles.mobileSectionLinks}>
+                      {section.links.map((l) => (
+                        <Link key={l.href} href={l.href} onClick={() => setIsMobileMenuOpen(false)}>
+                          {l.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
           <Link href="/about" onClick={() => setIsMobileMenuOpen(false)}>About Us</Link>
           
           <hr className={styles.mobileDivider} />
