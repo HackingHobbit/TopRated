@@ -14,6 +14,7 @@ import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { PLACEHOLDER_IMAGE } from '../site';
+import { detectGame } from '../games';
 
 const CLOVER_API = 'https://api.clover.com';
 const PAGE_SIZE = 1000;
@@ -245,6 +246,7 @@ export async function runInventorySync(
       quantity: qty ?? 0,
       is_sealed: top === 'sports' || top === 'tcg',
       is_out_of_stock: outOfStock,
+      game: category === 'TCG' ? detectGame(name) : null,
     });
     report.added.push({
       id: it.id,

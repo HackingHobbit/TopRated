@@ -60,6 +60,7 @@ interface ProductRow {
   is_limited: boolean;
   is_pre_order: boolean;
   image_representative: boolean;
+  game: string | null;
 }
 
 interface CategoryRow {
@@ -90,6 +91,7 @@ function rowToProduct(row: ProductRow, topByCategory: Map<string, string>): Prod
     isLimited: row.is_limited,
     isPreOrder: row.is_pre_order,
     imageRepresentative: row.image_representative ?? false,
+    game: row.game ?? null,
   };
 }
 
@@ -116,7 +118,7 @@ export const getProductById = cache(
           supabase
             .from('products')
             .select(
-              'id, name, description, price, image, category_id, sku, is_sealed, is_sale, is_featured, is_new_release, is_out_of_stock, is_limited, is_pre_order, image_representative'
+              'id, name, description, price, image, category_id, sku, is_sealed, is_sale, is_featured, is_new_release, is_out_of_stock, is_limited, is_pre_order, image_representative, game'
             )
             .eq('id', id)
             .maybeSingle(),
@@ -145,7 +147,7 @@ async function fetchProductsFromSupabase(): Promise<Product[]> {
       supabase
         .from('products')
         .select(
-          'id, name, description, price, image, category_id, sku, is_sealed, is_sale, is_featured, is_new_release, is_out_of_stock, is_limited, is_pre_order, image_representative'
+          'id, name, description, price, image, category_id, sku, is_sealed, is_sale, is_featured, is_new_release, is_out_of_stock, is_limited, is_pre_order, image_representative, game'
         )
         .order('name', { ascending: true }),
       supabase.from('categories').select('id, top_level'),

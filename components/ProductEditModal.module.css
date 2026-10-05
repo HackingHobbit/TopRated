@@ -46,6 +46,7 @@
 }
 
 .formGroup input,
+.formGroup select,
 .formGroup textarea {
   width: 100%;
   padding: 0.75rem;
@@ -57,6 +58,7 @@
 }
 
 .formGroup input:focus,
+.formGroup select:focus,
 .formGroup textarea:focus {
   outline: none;
   border-color: var(--accent-red);
@@ -177,4 +179,9 @@
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 1rem;
+}
+
+.formGroup select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }

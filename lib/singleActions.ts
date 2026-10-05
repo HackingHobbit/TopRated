@@ -6,6 +6,7 @@
 // to admins. Photo files are already in Storage by the time these run — we
 // only persist their URLs here.
 
+import { detectGame } from './games';
 import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { getSupabaseServer } from './supabase/server';
@@ -101,7 +102,9 @@ export async function createSingle(input: SingleInput): Promise<ActionResult> {
     const id = `sng_${randomUUID()}`;
     const { error: pErr } = await supabase
       .from('products')
-      .insert(productRow(id, input));
+      // Guess the game on create only; staff corrections made later in the
+      // product editor are kept when the single is edited.
+      .insert({ ...productRow(id, input), game: input.categoryId === 'TCG' ? detectGame(input.name) : null });
     if (pErr) return { ok: false, error: pErr.message };
 
     const { error: dErr } = await supabase

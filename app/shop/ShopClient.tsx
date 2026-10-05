@@ -12,6 +12,7 @@ import {
   TYPE_LABELS,
   type ProductType,
 } from '@/lib/productFacets';
+import { GAMES, gameLabel } from '@/lib/games';
 import styles from './page.module.css';
 
 const TYPE_ORDER: ProductType[] = ['sealed', 'single', 'supplies'];
@@ -31,6 +32,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   const type = (sp.get('type') || '') as ProductType | '';
   const category = sp.get('category') || 'All';
   const subCategory = sp.get('subCategory') || 'All';
+  const game = sp.get('game') || 'All';
   const year = sp.get('year') || 'All';
   const format = sp.get('format') || 'All';
   const onlySale = sp.get('sale') === '1';
@@ -82,6 +84,18 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
     () => ['All', ...Array.from(new Set(catFiltered.map((p) => p.subCategory))).sort()],
     [catFiltered]
   );
+  // Games present among the products in the current subcategory (so the list
+  // only shows when browsing trading-card products, and never offers an
+  // option with no results).
+  const games = useMemo(() => {
+    const present = new Set(
+      catFiltered
+        .filter((p) => subCategory === 'All' || p.subCategory === subCategory)
+        .map((p) => p.game)
+        .filter(Boolean)
+    );
+    return GAMES.filter((g) => present.has(g.id));
+  }, [catFiltered, subCategory]);
   const years = useMemo(() => {
     const ys = new Set<string>();
     catFiltered.forEach((p) => {
@@ -106,6 +120,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
       if (type && productType(p) !== type) return false;
       if (category !== 'All' && p.category !== category) return false;
       if (subCategory !== 'All' && p.subCategory !== subCategory) return false;
+      if (game !== 'All' && p.game !== game) return false;
       if (year !== 'All' && deriveYear(p.name) !== year) return false;
       if (format !== 'All' && deriveFormat(p.name) !== format) return false;
       if (onlySale && !p.isSale) return false;
@@ -131,7 +146,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
         return [...result].sort((a, b) => (b.isNewRelease ? 1 : 0) - (a.isNewRelease ? 1 : 0));
     }
   }, [
-    initialProducts, type, category, subCategory, year, format,
+    initialProducts, type, category, subCategory, game, year, format,
     onlySale, onlyPre, onlyNew, inStock, minPrice, maxPrice, searchQuery, sort,
   ]);
 
@@ -139,7 +154,8 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   const chips: Array<{ label: string; clear: () => void }> = [];
   if (type) chips.push({ label: TYPE_LABELS[type], clear: () => setParam({ type: null }) });
   if (category !== 'All') chips.push({ label: category, clear: () => setParam({ category: null, subCategory: null }) });
-  if (subCategory !== 'All') chips.push({ label: subCategory, clear: () => setParam({ subCategory: null }) });
+  if (subCategory !== 'All') chips.push({ label: subCategory, clear: () => setParam({ subCategory: null, game: null }) });
+  if (game !== 'All') chips.push({ label: gameLabel(game) || game, clear: () => setParam({ game: null }) });
   if (year !== 'All') chips.push({ label: year, clear: () => setParam({ year: null }) });
   if (format !== 'All') chips.push({ label: format, clear: () => setParam({ format: null }) });
   if (inStock) chips.push({ label: 'In Stock', clear: () => setParam({ instock: null }) });
@@ -242,7 +258,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
                 <button
                   key={cat}
                   className={`${styles.filterBtn} ${category === cat ? styles.activeFilter : ''}`}
-                  onClick={() => setParam({ category: cat, subCategory: null })}
+                  onClick={() => setParam({ category: cat, subCategory: null, game: null })}
                 >
                   {cat}
                 </button>
@@ -258,9 +274,32 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
                   <button
                     key={sub}
                     className={`${styles.filterBtn} ${subCategory === sub ? styles.activeFilter : ''}`}
-                    onClick={() => setParam({ subCategory: sub })}
+                    onClick={() => setParam({ subCategory: sub, game: null })}
                   >
                     {sub}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {games.length > 1 && (
+            <div className={styles.filterSection}>
+              <h4>Game</h4>
+              <div className={styles.filterList}>
+                <button
+                  className={`${styles.filterBtn} ${game === 'All' ? styles.activeFilter : ''}`}
+                  onClick={() => setParam({ game: null })}
+                >
+                  All
+                </button>
+                {games.map((g) => (
+                  <button
+                    key={g.id}
+                    className={`${styles.filterBtn} ${game === g.id ? styles.activeFilter : ''}`}
+                    onClick={() => setParam({ game: g.id })}
+                  >
+                    {g.label}
                   </button>
                 ))}
               </div>

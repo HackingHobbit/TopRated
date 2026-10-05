@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Search, Info } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { updateProduct } from '@/lib/actions';
+import { GAMES } from '@/lib/games';
 import ImageSearchModal from './ImageSearchModal';
 import styles from './ProductEditModal.module.css';
 
@@ -19,7 +20,8 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
     description: product.description,
     price: product.price,
     image: product.image,
-    imageRepresentative: product.imageRepresentative ?? false
+    imageRepresentative: product.imageRepresentative ?? false,
+    game: product.game ?? ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -34,7 +36,8 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
         description: formData.description,
         price: Number(formData.price),
         image: formData.image,
-        imageRepresentative: formData.imageRepresentative
+        imageRepresentative: formData.imageRepresentative,
+        ...(product.subCategory === 'TCG' ? { game: formData.game || null } : {})
       });
       onSave(updated);
     } catch (error) {
@@ -142,6 +145,22 @@ export default function ProductEditModal({ product, onClose, onSave }: Props) {
               (shows a &ldquo;Representative image&rdquo; note to shoppers)
             </label>
           </div>
+
+          {product.subCategory === 'TCG' && (
+            <div className={styles.formGroup}>
+              <label htmlFor="product-game">Game</label>
+              <select
+                id="product-game"
+                value={formData.game}
+                onChange={e => setFormData({...formData, game: e.target.value})}
+              >
+                <option value="">Not set</option>
+                {GAMES.map(g => (
+                  <option key={g.id} value={g.id}>{g.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className={styles.actions}>
             <button type="button" onClick={onClose} className="btn-secondary" disabled={isSaving}>Cancel</button>

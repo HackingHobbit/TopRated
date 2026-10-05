@@ -67,6 +67,7 @@ export async function updateProduct(
       isLimited: 'is_limited',
       isPreOrder: 'is_pre_order',
       imageRepresentative: 'image_representative',
+      game: 'game',
     };
     for (const [k, v] of Object.entries(updates)) {
       if (k === 'category') continue; // top-level is read-only here
@@ -79,7 +80,7 @@ export async function updateProduct(
       .update(dbUpdates)
       .eq('id', id)
       .select(
-        'id, name, description, price, image, category_id, sku, is_sealed, is_sale, is_featured, is_new_release, is_out_of_stock, is_limited, is_pre_order, image_representative'
+        'id, name, description, price, image, category_id, sku, is_sealed, is_sale, is_featured, is_new_release, is_out_of_stock, is_limited, is_pre_order, image_representative, game'
       )
       .single();
     if (error) throw new Error(error.message);
@@ -115,6 +116,7 @@ export async function updateProduct(
       isLimited: data.is_limited,
       isPreOrder: data.is_pre_order,
       imageRepresentative: data.image_representative ?? false,
+      game: data.game ?? null,
     };
   }
 

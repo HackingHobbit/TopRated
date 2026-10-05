@@ -20,6 +20,8 @@ export interface Product {
   /** true = the stored image is a representative stand-in, not guaranteed to
    *  match the exact item shipped. Storefront surfaces a note when true. */
   imageRepresentative: boolean;
+  /** Game / franchise for trading-card products (see lib/games.ts). */
+  game?: string | null;
 }
 
 // One uploaded photo associated with a product (front/back/angles). The
