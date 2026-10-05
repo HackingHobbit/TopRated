@@ -7,7 +7,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { placeOrder, type ShippingDetails } from '@/lib/orderActions';
 import { getCloverCheckoutConfig, type CloverCheckoutConfig } from '@/lib/cloverActions';
-import { listMyAddresses, type SavedAddress } from '@/lib/addressActions';
+import { listMyAddresses, saveAddress, type SavedAddress } from '@/lib/addressActions';
 import { listMyPaymentMethods, type SavedCard } from '@/lib/paymentMethodActions';
 import { FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING, TAX_RATE, round2 } from '@/lib/pricing';
 import styles from './page.module.css';
@@ -92,6 +92,7 @@ export default function CheckoutPage() {
 
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
+  const [saveNewAddress, setSaveNewAddress] = useState(true);
 
   const [paymentMethods, setPaymentMethods] = useState<SavedCard[]>([]);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string>('new');
@@ -243,6 +244,25 @@ export default function CheckoutPage() {
       setError(res.error ?? 'Sorry, we couldn’t place your order.');
       return;
     }
+    // Remember a newly typed address for next time (best effort — the order
+    // is already placed). Skip it if it matches one already saved.
+    if (isAuthenticated && !selectedAddress && saveNewAddress) {
+      const norm = (v: string) => v.trim().toLowerCase();
+      const duplicate = addresses.some(
+        (a) => norm(a.address) === norm(shipping.address) && norm(a.zip) === norm(shipping.zip)
+      );
+      if (!duplicate) {
+        await saveAddress({
+          label: '',
+          fullName: shipping.fullName,
+          phone: '',
+          address: shipping.address,
+          city: shipping.city,
+          state: shipping.state,
+          zip: shipping.zip,
+        }).catch(() => undefined);
+      }
+    }
     setOrderId(res.orderNumber ?? null);
     setShippingDetails(shipping);
     clearCart();
@@ -377,6 +397,17 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>
+
+                {isAuthenticated && !selectedAddress && (
+                  <label className={styles.checkboxRow}>
+                    <input
+                      type="checkbox"
+                      checked={saveNewAddress}
+                      onChange={(e) => setSaveNewAddress(e.target.checked)}
+                    />
+                    Save this address for next time
+                  </label>
+                )}
               </div>
 
               <div className={styles.formSection}>
@@ -454,8 +485,12 @@ export default function CheckoutPage() {
                   </>
                 )}
 
-                {cloverConfig?.mode === 'live' && !usingSavedCard && (
-                  <>
+                {/* Kept mounted (just hidden) while a saved card is selected:
+                    Clover mounts its card iframes into these divs once, so
+                    unmounting them would leave empty, un-typeable boxes when
+                    the customer switches to "Use a new card". */}
+                {cloverConfig?.mode === 'live' && (
+                  <div style={{ display: usingSavedCard ? 'none' : 'block' }}>
                     <p className={styles.mockNotice}>
                       Payments are processed securely by Clover. Your card
                       details are entered directly into Clover&apos;s secure
@@ -500,7 +535,7 @@ export default function CheckoutPage() {
                         Save this card for next time
                       </label>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
 
