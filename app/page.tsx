@@ -50,6 +50,54 @@ export default async function Home() {
   const preOrders = allProducts.filter((p) => p.isPreOrder).slice(0, 4);
   const deals = allProducts.filter((p) => p.isSale).slice(0, 4);
 
+  // News & Events: shown above the Featured Collection when there's an
+  // upcoming event, otherwise as a small note further down the page.
+  const eventsSection = (
+    <ScrollReveal>
+      <section className={`container ${styles.featured}`}>
+        <div className={styles.sectionHeader}>
+          <h2>News &amp; Upcoming Events</h2>
+        </div>
+        {visibleEvents.length === 0 ? (
+          <div className={`glass-panel ${styles.eventCard}`}>
+            <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+              No upcoming events at the moment.
+            </p>
+          </div>
+        ) : (
+          <div className={styles.eventsGrid}>
+            {visibleEvents.map((event) => (
+              <div key={event.id} className={`glass-panel ${styles.eventCard}`}>
+                {event.image ? (
+                  <img
+                    src={event.image}
+                    alt={event.title}
+                    style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 12 }}
+                  />
+                ) : null}
+                <h3>{event.title}</h3>
+                <p className={styles.eventDate}>
+                  {new Date(event.startDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                  {' - '}
+                  {new Date(event.endDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </p>
+                <p>{event.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </ScrollReveal>
+  );
+
   return (
     <div className={styles.container}>
       <ScrollReveal>
@@ -89,6 +137,8 @@ export default async function Home() {
         </section>
       </ScrollReveal>
 
+      {visibleEvents.length > 0 && eventsSection}
+
       <ProductSection
         title="Featured Collection"
         cta={{ href: '/shop?featured=1', label: 'View All' }}
@@ -113,50 +163,8 @@ export default async function Home() {
         products={deals}
       />
 
-      {/* News & Events */}
-      <ScrollReveal>
-        <section className={`container ${styles.featured}`}>
-          <div className={styles.sectionHeader}>
-            <h2>News &amp; Upcoming Events</h2>
-          </div>
-          {visibleEvents.length === 0 ? (
-            <div className={`glass-panel ${styles.eventCard}`}>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-                No upcoming events at the moment.
-              </p>
-            </div>
-          ) : (
-            <div className={styles.eventsGrid}>
-              {visibleEvents.map((event) => (
-                <div key={event.id} className={`glass-panel ${styles.eventCard}`}>
-                  {event.image ? (
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 12 }}
-                    />
-                  ) : null}
-                  <h3>{event.title}</h3>
-                  <p className={styles.eventDate}>
-                    {new Date(event.startDate).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                    {' - '}
-                    {new Date(event.endDate).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </p>
-                  <p>{event.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </ScrollReveal>
+      {/* No events: the empty-state note stays lower on the page. */}
+      {visibleEvents.length === 0 && eventsSection}
 
       <ScrollReveal>
         <section id="visit" className={`container ${styles.visitUs}`}>
