@@ -56,6 +56,10 @@ export interface InventorySyncReport {
   skipped: SyncChange[];
   /** Website products with no Clover item (e.g. singles) — left alone. */
   websiteOnly: number;
+  /** Products deleted in Clover: marked sold out (never deleted — old orders keep them). */
+  removedFromClover: SyncChange[];
+  /** Set when Clover returned suspiciously few items and removals were skipped. */
+  warning?: string;
   applied: boolean;
 }
 
@@ -139,6 +143,10 @@ function inferCategory(name: string): string | null {
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 
+// Clover item ids are 13 uppercase letters/digits; products created on the
+// website itself (singles) use a "sng_" prefix and are never touched here.
+const CLOVER_ID = /^[0-9A-Z]{13}$/;
+
 /**
  * Compare Clover against the website and, when `apply` is true, write the
  * changes. With `apply` false it's a dry run that only reports.
@@ -171,6 +179,7 @@ export async function runInventorySync(
     added: [],
     skipped: [],
     websiteOnly: 0,
+    removedFromClover: [],
     applied: apply,
   };
 
@@ -258,6 +267,24 @@ export async function runInventorySync(
   const cloverIds = new Set(items.map((it) => it.id));
   report.websiteOnly = [...products.keys()].filter((id) => !cloverIds.has(id)).length;
 
+  // Products that came from Clover (13-character Clover ids — website-made
+  // singles are "sng_…") but no longer exist there: mark them sold out so
+  // they can't be ordered. Guarded against a partial or empty answer from
+  // Clover, which would otherwise mark the whole catalog sold out.
+  const fromClover = [...products.values()].filter((p) => CLOVER_ID.test(p.id));
+  const missing = fromClover.filter((p) => !cloverIds.has(p.id));
+  if (missing.length > 0 && missing.length > fromClover.length * 0.2) {
+    report.warning =
+      `Clover returned ${items.length} items but ${missing.length} website products are missing from it — ` +
+      'removals skipped in case Clover answered incompletely. Check Clover, then sync again.';
+  } else {
+    for (const p of missing) {
+      if (p.is_out_of_stock) continue;
+      updates.push({ id: p.id, patch: { is_out_of_stock: true } });
+      report.removedFromClover.push({ id: p.id, name: p.name, detail: 'no longer in Clover — marked sold out' });
+    }
+  }
+
   if (apply) {
     // Partial updates can't go through upsert (it would need every NOT NULL
     // column), so update row by row in small parallel batches.
@@ -274,5 +301,34 @@ export async function runInventorySync(
     }
   }
 
+  return report;
+}
+
+/**
+ * Run the sync using the credentials saved in Admin → Integrations →
+ * Inventory sync, and stamp the last-synced time when applied. Shared by the
+ * admin "Apply" button and the hourly scheduled sync.
+ */
+export async function runSavedInventorySync(
+  supabase: SupabaseClient,
+  apply: boolean
+): Promise<InventorySyncReport> {
+  const { data, error } = await supabase
+    .from('clover_settings')
+    .select('inventory_merchant_id, inventory_api_token')
+    .eq('id', 'default')
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const merchantId = (data?.inventory_merchant_id as string) || '';
+  const token = (data?.inventory_api_token as string) || '';
+  if (!merchantId || !token) throw new Error('Save the merchant ID and API token first.');
+
+  const report = await runInventorySync(supabase, merchantId, token, apply);
+  if (apply) {
+    await supabase
+      .from('clover_settings')
+      .update({ inventory_synced_at: new Date().toISOString() })
+      .eq('id', 'default');
+  }
   return report;
 }

@@ -11,7 +11,7 @@ import { getSupabaseAdmin } from './supabase/admin';
 import { getCloverClient, getCloverSettingsMasked, isLiveReady, loadCloverSettings } from './clover';
 import { LiveCloverClient } from './clover/live';
 import { MockCloverClient } from './clover/mock';
-import { runInventorySync, type InventorySyncReport } from './clover/inventorySync';
+import { runSavedInventorySync, type InventorySyncReport } from './clover/inventorySync';
 import type {
   CloverConnResult,
   CloverEnv,
@@ -164,19 +164,11 @@ export async function syncInventoryFromClover(
   apply: boolean
 ): Promise<{ ok: boolean; report?: InventorySyncReport; error?: string }> {
   await assertAdmin();
+  const admin = getSupabaseAdmin();
+  if (!admin) return { ok: false, error: 'Supabase service key not configured.' };
   try {
-    const s = await loadInventorySyncSettings();
-    if (!s.merchantId || !s.token) {
-      return { ok: false, error: 'Save the merchant ID and API token first.' };
-    }
-    const report = await runInventorySync(s.admin, s.merchantId, s.token, apply);
-    if (apply) {
-      await s.admin
-        .from('clover_settings')
-        .update({ inventory_synced_at: new Date().toISOString() })
-        .eq('id', 'default');
-      revalidatePath('/', 'layout');
-    }
+    const report = await runSavedInventorySync(admin, apply);
+    if (apply) revalidatePath('/', 'layout');
     return { ok: true, report };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Sync failed.' };

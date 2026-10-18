@@ -71,6 +71,7 @@ export default function InventorySyncForm({ status }: { status: InventorySyncSta
       report.nowOutOfStock.length +
       report.backInStock.length +
       report.added.length +
+      report.removedFromClover.length +
       report.quantityUpdates ===
       0;
 
@@ -157,6 +158,8 @@ export default function InventorySyncForm({ status }: { status: InventorySyncSta
               <ChangeList title="Back in stock" items={report.backInStock} />
               <ChangeList title="New products added (placeholder photo)" items={report.added} />
               <ChangeList title="Skipped — fix in Clover, then sync again" items={report.skipped} />
+              <ChangeList title="Deleted in Clover — marked sold out" items={report.removedFromClover} />
+              {report.warning && <p className={styles.err}>{report.warning}</p>}
             </div>
           )}
         </>
