@@ -91,7 +91,7 @@ export default async function Home() {
 
       <ProductSection
         title="Featured Collection"
-        cta={{ href: '/shop', label: 'View All' }}
+        cta={{ href: '/shop?featured=1', label: 'View All' }}
         products={topFeatured}
       />
 

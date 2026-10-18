@@ -38,6 +38,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   const onlySale = sp.get('sale') === '1';
   const onlyPre = sp.get('preorder') === '1';
   const onlyNew = sp.get('new') === '1';
+  const onlyFeatured = sp.get('featured') === '1';
   const inStock = sp.get('instock') === '1';
   const minPrice = sp.get('min') ? Number(sp.get('min')) : null;
   const maxPrice = sp.get('max') ? Number(sp.get('max')) : null;
@@ -126,6 +127,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
       if (onlySale && !p.isSale) return false;
       if (onlyPre && !p.isPreOrder) return false;
       if (onlyNew && !p.isNewRelease) return false;
+      if (onlyFeatured && !p.isFeatured) return false;
       if (inStock && p.isOutOfStock) return false;
       if (minPrice != null && p.price < minPrice) return false;
       if (maxPrice != null && p.price > maxPrice) return false;
@@ -147,7 +149,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
     }
   }, [
     initialProducts, type, category, subCategory, game, year, format,
-    onlySale, onlyPre, onlyNew, inStock, minPrice, maxPrice, searchQuery, sort,
+    onlySale, onlyPre, onlyNew, onlyFeatured, inStock, minPrice, maxPrice, searchQuery, sort,
   ]);
 
   // ---- Active-filter chips (for a clear, consistent "what's applied" view)
@@ -162,6 +164,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
   if (onlySale) chips.push({ label: 'On Sale', clear: () => setParam({ sale: null }) });
   if (onlyPre) chips.push({ label: 'Pre-Order', clear: () => setParam({ preorder: null }) });
   if (onlyNew) chips.push({ label: 'New', clear: () => setParam({ new: null }) });
+  if (onlyFeatured) chips.push({ label: 'Featured', clear: () => setParam({ featured: null }) });
   if (minPrice != null) chips.push({ label: `Min $${minPrice}`, clear: () => setParam({ min: null }) });
   if (maxPrice != null) chips.push({ label: `Max $${maxPrice}`, clear: () => setParam({ max: null }) });
   const clearAll = () => {
@@ -247,6 +250,10 @@ export default function ShopClient({ initialProducts }: { initialProducts: Produ
               <label className={styles.toggleLabel}>
                 <input type="checkbox" checked={onlyNew} onChange={() => toggleFlag('new')} className={styles.checkbox} />
                 New Releases
+              </label>
+              <label className={styles.toggleLabel}>
+                <input type="checkbox" checked={onlyFeatured} onChange={() => toggleFlag('featured')} className={styles.checkbox} />
+                Featured
               </label>
             </div>
           </div>
