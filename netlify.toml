@@ -1,0 +1,9 @@
+# Only redirects live here — build settings stay in the Netlify UI.
+
+# One public address: send the default Netlify address to the real domain
+# (keeps Google from indexing two copies of the store).
+[[redirects]]
+  from = "https://topratedcc.netlify.app/*"
+  to = "https://topratedcc.com/:splat"
+  status = 301
+  force = true
