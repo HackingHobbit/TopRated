@@ -36,6 +36,11 @@
   padding: 1.5rem;
   position: sticky;
   top: 100px;
+  /* The filter list can be far taller than the window (TCG: ~2,700px), and a
+     sticky panel can't be scrolled by the page — give it its own scroll. */
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Filters collapse behind a toggle on mobile so products come first.
@@ -50,6 +55,8 @@
     width: 100%;
     position: static;
     top: auto;
+    max-height: none;
+    overflow-y: visible;
     padding: 1rem;
   }
   .filtersToggle {
